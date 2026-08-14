@@ -1,0 +1,188 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Diagnostic connection test document
+    match /test/connection {
+      allow read: if true;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isStoreOwner(storeId) {
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/stores/$(storeId)) &&
+        get(/databases/$(database)/documents/stores/$(storeId)).data.ownerId == request.auth.uid
+      );
+    }
+
+    // User profile validation
+    function isValidUserProfile(data) {
+      return data.userId is string && data.userId.size() <= 128 &&
+             data.userId == request.auth.uid &&
+             data.email is string && data.email.size() <= 255 &&
+             (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 100)) &&
+             (!('role' in data) || (data.role in ['admin', 'manager', 'cashier'])) &&
+             (!('storeId' in data) || (data.storeId is string && data.storeId.size() <= 128));
+    }
+
+    // Store validation
+    function isValidStore(data) {
+      return data.storeId is string && data.storeId.size() <= 128 &&
+             data.ownerId is string && data.ownerId == request.auth.uid &&
+             data.company_name is string && data.company_name.size() <= 150 &&
+             (!('address' in data) || (data.address is string && data.address.size() <= 300)) &&
+             (!('currency_symbol' in data) || (data.currency_symbol is string && data.currency_symbol.size() <= 10)) &&
+             (!('tax_rate_percent' in data) || (data.tax_rate_percent is number));
+    }
+
+    // Item validation
+    function isValidItem(data) {
+      return data.item_id is string && data.item_id.size() <= 128 &&
+             data.storeId is string && data.storeId.size() <= 128 &&
+             data.name is string && data.name.size() <= 150 &&
+             data.unit_price is number && data.quantity is number &&
+             (!('cost_price' in data) || data.cost_price is number) &&
+             (!('category' in data) || (data.category is string && data.category.size() <= 100)) &&
+             (!('barcode' in data) || (data.barcode is string && data.barcode.size() <= 100)) &&
+             (!('description' in data) || (data.description is string && data.description.size() <= 500));
+    }
+
+    // Customer validation
+    function isValidCustomer(data) {
+      return data.customer_id is string && data.customer_id.size() <= 128 &&
+             data.storeId is string && data.storeId.size() <= 128 &&
+             data.first_name is string && data.first_name.size() <= 100 &&
+             (!('last_name' in data) || (data.last_name is string && data.last_name.size() <= 100)) &&
+             (!('email' in data) || (data.email is string && data.email.size() <= 150)) &&
+             (!('phone_number' in data) || (data.phone_number is string && data.phone_number.size() <= 50)) &&
+             (!('points' in data) || data.points is number) &&
+             (!('balance' in data) || data.balance is number);
+    }
+
+    // Supplier validation
+    function isValidSupplier(data) {
+      return data.supplier_id is string && data.supplier_id.size() <= 128 &&
+             data.storeId is string && data.storeId.size() <= 128 &&
+             data.company_name is string && data.company_name.size() <= 150 &&
+             (!('first_name' in data) || (data.first_name is string && data.first_name.size() <= 100)) &&
+             (!('email' in data) || (data.email is string && data.email.size() <= 150)) &&
+             (!('phone_number' in data) || (data.phone_number is string && data.phone_number.size() <= 50));
+    }
+
+    // Sale validation
+    function isValidSale(data) {
+      return data.sale_id is string && data.sale_id.size() <= 128 &&
+             data.storeId is string && data.storeId.size() <= 128 &&
+             data.sale_time is string && data.sale_time.size() <= 50 &&
+             data.total is number &&
+             data.status in ['completed', 'held', 'voided'] &&
+             (!('customer_name' in data) || (data.customer_name is string && data.customer_name.size() <= 150)) &&
+             (!('subtotal' in data) || data.subtotal is number) &&
+             (!('tax' in data) || data.tax is number);
+    }
+
+    // User collection rules
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isOwner(userId) && isValidId(userId) && isValidUserProfile(request.resource.data);
+      allow update: if isOwner(userId) && isValidId(userId) && isValidUserProfile(request.resource.data) &&
+                      request.resource.data.userId == resource.data.userId;
+      allow delete: if isOwner(userId) && isValidId(userId);
+    }
+
+    // Store collection & subcollections
+    match /stores/{storeId} {
+      allow get: if isSignedIn() && (resource.data.ownerId == request.auth.uid);
+      allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(storeId) && isValidStore(request.resource.data);
+      allow update: if isSignedIn() && isValidId(storeId) && isValidStore(request.resource.data) &&
+                      request.resource.data.ownerId == resource.data.ownerId;
+      allow delete: if isSignedIn() && isValidId(storeId) && resource.data.ownerId == request.auth.uid;
+
+      // Items Subcollection
+      match /items/{itemId} {
+        allow get: if isStoreOwner(storeId) && isValidId(itemId);
+        allow list: if isStoreOwner(storeId);
+        allow create: if isStoreOwner(storeId) && isValidId(itemId) && isValidItem(request.resource.data);
+        allow update: if isStoreOwner(storeId) && isValidId(itemId) && isValidItem(request.resource.data) &&
+                        request.resource.data.storeId == resource.data.storeId;
+        allow delete: if isStoreOwner(storeId) && isValidId(itemId);
+      }
+
+      // Customers Subcollection
+      match /customers/{customerId} {
+        allow get: if isStoreOwner(storeId) && isValidId(customerId);
+        allow list: if isStoreOwner(storeId);
+        allow create: if isStoreOwner(storeId) && isValidId(customerId) && isValidCustomer(request.resource.data);
+        allow update: if isStoreOwner(storeId) && isValidId(customerId) && isValidCustomer(request.resource.data) &&
+                        request.resource.data.storeId == resource.data.storeId;
+        allow delete: if isStoreOwner(storeId) && isValidId(customerId);
+      }
+
+      // Suppliers Subcollection
+      match /suppliers/{supplierId} {
+        allow get: if isStoreOwner(storeId) && isValidId(supplierId);
+        allow list: if isStoreOwner(storeId);
+        allow create: if isStoreOwner(storeId) && isValidId(supplierId) && isValidSupplier(request.resource.data);
+        allow update: if isStoreOwner(storeId) && isValidId(supplierId) && isValidSupplier(request.resource.data) &&
+                        request.resource.data.storeId == resource.data.storeId;
+        allow delete: if isStoreOwner(storeId) && isValidId(supplierId);
+      }
+
+      // Sales Subcollection
+      match /sales/{saleId} {
+        allow get: if isStoreOwner(storeId) && isValidId(saleId);
+        allow list: if isStoreOwner(storeId);
+        allow create: if isStoreOwner(storeId) && isValidId(saleId) && isValidSale(request.resource.data);
+        allow update: if isStoreOwner(storeId) && isValidId(saleId) && isValidSale(request.resource.data) &&
+                        request.resource.data.storeId == resource.data.storeId;
+        allow delete: if isStoreOwner(storeId) && isValidId(saleId);
+      }
+
+      // Receivings Subcollection
+      match /receivings/{receivingId} {
+        allow get: if isStoreOwner(storeId) && isValidId(receivingId);
+        allow list: if isStoreOwner(storeId);
+        allow create: if isStoreOwner(storeId) && isValidId(receivingId);
+        allow update: if isStoreOwner(storeId) && isValidId(receivingId);
+        allow delete: if isStoreOwner(storeId) && isValidId(receivingId);
+      }
+
+      // Expenses Subcollection
+      match /expenses/{expenseId} {
+        allow get: if isStoreOwner(storeId) && isValidId(expenseId);
+        allow list: if isStoreOwner(storeId);
+        allow create: if isStoreOwner(storeId) && isValidId(expenseId);
+        allow update: if isStoreOwner(storeId) && isValidId(expenseId);
+        allow delete: if isStoreOwner(storeId) && isValidId(expenseId);
+      }
+
+      // Cashups Subcollection
+      match /cashups/{cashupId} {
+        allow get: if isStoreOwner(storeId) && isValidId(cashupId);
+        allow list: if isStoreOwner(storeId);
+        allow create: if isStoreOwner(storeId) && isValidId(cashupId);
+        allow update: if isStoreOwner(storeId) && isValidId(cashupId);
+        allow delete: if isStoreOwner(storeId) && isValidId(cashupId);
+      }
+    }
+  }
+}

@@ -1,0 +1,219 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User account profile for authentication and store association",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "maxLength": 255 },
+        "displayName": { "type": "string", "maxLength": 100 },
+        "photoURL": { "type": "string", "maxLength": 500 },
+        "role": { "type": "string", "enum": ["admin", "manager", "cashier"] },
+        "storeId": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string" },
+        "lastLoginAt": { "type": "string" }
+      },
+      "required": ["userId", "email"]
+    },
+    "Store": {
+      "title": "Store",
+      "description": "Store configuration and metadata owned by a user",
+      "type": "object",
+      "properties": {
+        "storeId": { "type": "string", "maxLength": 128 },
+        "ownerId": { "type": "string", "maxLength": 128 },
+        "company_name": { "type": "string", "maxLength": 150 },
+        "address": { "type": "string", "maxLength": 300 },
+        "phone": { "type": "string", "maxLength": 50 },
+        "email": { "type": "string", "maxLength": 150 },
+        "currency_symbol": { "type": "string", "maxLength": 10 },
+        "tax_rate_percent": { "type": "number" },
+        "receipt_header": { "type": "string", "maxLength": 200 },
+        "receipt_footer": { "type": "string", "maxLength": 200 },
+        "upi_id": { "type": "string", "maxLength": 100 },
+        "upi_payee_name": { "type": "string", "maxLength": 100 },
+        "upi_qr_note": { "type": "string", "maxLength": 100 },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["storeId", "ownerId", "company_name"]
+    },
+    "Item": {
+      "title": "Item",
+      "description": "Inventory product in the POS catalog",
+      "type": "object",
+      "properties": {
+        "item_id": { "type": "string", "maxLength": 128 },
+        "storeId": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 150 },
+        "category": { "type": "string", "maxLength": 100 },
+        "item_number": { "type": "string", "maxLength": 100 },
+        "barcode": { "type": "string", "maxLength": 100 },
+        "cost_price": { "type": "number" },
+        "unit_price": { "type": "number" },
+        "quantity": { "type": "number" },
+        "reorder_level": { "type": "number" },
+        "description": { "type": "string", "maxLength": 500 },
+        "is_deleted": { "type": "boolean" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["item_id", "storeId", "name", "unit_price", "quantity"]
+    },
+    "Customer": {
+      "title": "Customer",
+      "description": "Customer record with loyalty points and contact info",
+      "type": "object",
+      "properties": {
+        "customer_id": { "type": "string", "maxLength": 128 },
+        "storeId": { "type": "string", "maxLength": 128 },
+        "first_name": { "type": "string", "maxLength": 100 },
+        "last_name": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "maxLength": 150 },
+        "phone_number": { "type": "string", "maxLength": 50 },
+        "company_name": { "type": "string", "maxLength": 150 },
+        "points": { "type": "number" },
+        "balance": { "type": "number" },
+        "discount_percent": { "type": "number" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["customer_id", "storeId", "first_name"]
+    },
+    "Supplier": {
+      "title": "Supplier",
+      "description": "Vendor or supplier details",
+      "type": "object",
+      "properties": {
+        "supplier_id": { "type": "string", "maxLength": 128 },
+        "storeId": { "type": "string", "maxLength": 128 },
+        "company_name": { "type": "string", "maxLength": 150 },
+        "agency_name": { "type": "string", "maxLength": 150 },
+        "first_name": { "type": "string", "maxLength": 100 },
+        "last_name": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "maxLength": 150 },
+        "phone_number": { "type": "string", "maxLength": 50 },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["supplier_id", "storeId", "company_name"]
+    },
+    "Sale": {
+      "title": "Sale",
+      "description": "Completed point of sale transaction",
+      "type": "object",
+      "properties": {
+        "sale_id": { "type": "string", "maxLength": 128 },
+        "storeId": { "type": "string", "maxLength": 128 },
+        "sale_time": { "type": "string", "maxLength": 50 },
+        "customer_id": { "type": "string", "maxLength": 128 },
+        "customer_name": { "type": "string", "maxLength": 150 },
+        "employee_id": { "type": "string", "maxLength": 128 },
+        "employee_name": { "type": "string", "maxLength": 100 },
+        "subtotal": { "type": "number" },
+        "tax": { "type": "number" },
+        "discount_total": { "type": "number" },
+        "total": { "type": "number" },
+        "change_due": { "type": "number" },
+        "status": { "type": "string", "enum": ["completed", "held", "voided"] },
+        "comment": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["sale_id", "storeId", "sale_time", "total", "status"]
+    },
+    "Receiving": {
+      "title": "Receiving",
+      "description": "Stock inventory receiving transaction",
+      "type": "object",
+      "properties": {
+        "receiving_id": { "type": "string", "maxLength": 128 },
+        "storeId": { "type": "string", "maxLength": 128 },
+        "receiving_time": { "type": "string", "maxLength": 50 },
+        "supplier_id": { "type": "string", "maxLength": 128 },
+        "supplier_name": { "type": "string", "maxLength": 150 },
+        "employee_id": { "type": "string", "maxLength": 128 },
+        "employee_name": { "type": "string", "maxLength": 100 },
+        "total": { "type": "number" },
+        "payment_type": { "type": "string", "maxLength": 50 },
+        "reference": { "type": "string", "maxLength": 100 },
+        "comment": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["receiving_id", "storeId", "receiving_time", "total"]
+    },
+    "Expense": {
+      "title": "Expense",
+      "description": "Store operational expense entry",
+      "type": "object",
+      "properties": {
+        "expense_id": { "type": "string", "maxLength": 128 },
+        "storeId": { "type": "string", "maxLength": 128 },
+        "date": { "type": "string", "maxLength": 50 },
+        "amount": { "type": "number" },
+        "payment_type": { "type": "string", "maxLength": 50 },
+        "category": { "type": "string", "maxLength": 100 },
+        "description": { "type": "string", "maxLength": 500 },
+        "employee_id": { "type": "string", "maxLength": 128 },
+        "employee_name": { "type": "string", "maxLength": 100 },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["expense_id", "storeId", "date", "amount", "category"]
+    },
+    "Cashup": {
+      "title": "Cashup",
+      "description": "Daily register reconciliation record",
+      "type": "object",
+      "properties": {
+        "cashup_id": { "type": "string", "maxLength": 128 },
+        "storeId": { "type": "string", "maxLength": 128 },
+        "open_date": { "type": "string", "maxLength": 50 },
+        "close_date": { "type": "string", "maxLength": 50 },
+        "open_amount": { "type": "number" },
+        "close_amount": { "type": "number" },
+        "expected_amount": { "type": "number" },
+        "discrepancy": { "type": "number" },
+        "note": { "type": "string", "maxLength": 500 },
+        "employee_id": { "type": "string", "maxLength": 128 },
+        "employee_name": { "type": "string", "maxLength": 100 },
+        "status": { "type": "string", "enum": ["open", "closed"] },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["cashup_id", "storeId", "open_date", "open_amount", "status"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profile document for authentication and identity"
+    },
+    "/stores/{storeId}": {
+      "schema": "Store",
+      "description": "Store configuration and metadata"
+    },
+    "/stores/{storeId}/items/{itemId}": {
+      "schema": "Item",
+      "description": "Store inventory products catalog"
+    },
+    "/stores/{storeId}/customers/{customerId}": {
+      "schema": "Customer",
+      "description": "Store customer directory"
+    },
+    "/stores/{storeId}/suppliers/{supplierId}": {
+      "schema": "Supplier",
+      "description": "Store supplier directory"
+    },
+    "/stores/{storeId}/sales/{saleId}": {
+      "schema": "Sale",
+      "description": "Store sales transactions"
+    },
+    "/stores/{storeId}/receivings/{receivingId}": {
+      "schema": "Receiving",
+      "description": "Store receiving purchase orders"
+    },
+    "/stores/{storeId}/expenses/{expenseId}": {
+      "schema": "Expense",
+      "description": "Store daily expense records"
+    },
+    "/stores/{storeId}/cashups/{cashupId}": {
+      "schema": "Cashup",
+      "description": "Store register cashup logs"
+    }
+  }
+}

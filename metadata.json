@@ -1,0 +1,8 @@
+{
+  "name": "OSPOS - Open Source Point of Sale",
+  "description": "A comprehensive Open Source Point of Sale application featuring inventory, barcode generation & scanning, cashier registers, payment processing, reports, customer loyalty, and expense management.",
+  "permissions": [],
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
