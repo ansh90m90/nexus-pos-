@@ -8,8 +8,9 @@ import {
   History, 
   PackageCheck
 } from 'lucide-react';
-import { Item, Supplier, Receiving, ReceivingItem, StoreConfig, Employee } from '../types/pos';
+import { Item, Supplier, Receiving, ReceivingItem, StoreConfig, Employee, ItemVariant } from '../types/pos';
 import { sound } from '../services/audio';
+import { searchItems } from '../utils/fuzzySearch';
 
 interface ReceivingsManagerProps {
   items: Item[];
@@ -37,14 +38,7 @@ export const ReceivingsManager: React.FC<ReceivingsManagerProps> = ({
 
   const filteredItems = useMemo(() => {
     if (!searchItem.trim()) return [];
-    const q = searchItem.toLowerCase();
-    return items.filter(i => 
-      !i.is_deleted && (
-        i.name.toLowerCase().includes(q) || 
-        i.item_number.toLowerCase().includes(q) ||
-        (i.category && i.category.toLowerCase().includes(q))
-      )
-    ).slice(0, 8);
+    return searchItems(items, searchItem, 'All').slice(0, 10);
   }, [items, searchItem]);
 
   const selectedSupplier = useMemo(() => {
@@ -55,10 +49,15 @@ export const ReceivingsManager: React.FC<ReceivingsManagerProps> = ({
     return receivingCart.reduce((acc, i) => acc + i.total, 0);
   }, [receivingCart]);
 
-  const addItemToReceiving = (item: Item) => {
+  const addItemToReceiving = (item: Item, variant?: ItemVariant) => {
     sound.playBeep();
+    const itemIdKey = variant ? `${item.id}-var-${variant.id}` : item.id;
+    const itemNumber = variant ? (variant.item_number || item.item_number) : item.item_number;
+    const itemName = variant ? `${item.name} (${variant.name})` : item.name;
+    const costPrice = variant ? (variant.cost_price ?? item.cost_price) : item.cost_price;
+
     setReceivingCart(prev => {
-      const idx = prev.findIndex(i => i.item_id === item.id);
+      const idx = prev.findIndex(i => i.item_id === itemIdKey);
       if (idx > -1) {
         const updated = [...prev];
         const newQty = updated[idx].quantity + 1;
@@ -71,12 +70,13 @@ export const ReceivingsManager: React.FC<ReceivingsManagerProps> = ({
       } else {
         return [
           {
-            item_id: item.id,
-            item_number: item.item_number,
-            name: item.name,
-            cost_price: item.cost_price,
+            item_id: itemIdKey,
+            item_number: itemNumber,
+            name: itemName,
+            cost_price: costPrice,
             quantity: 10,
-            total: item.cost_price * 10,
+            total: costPrice * 10,
+            ...(variant ? { variant_id: variant.id } : {}),
           },
           ...prev,
         ];
@@ -190,29 +190,54 @@ export const ReceivingsManager: React.FC<ReceivingsManagerProps> = ({
               </div>
 
               {filteredItems.length > 0 && (
-                <div className="border border-slate-200 dark:border-slate-800 rounded-lg divide-y divide-slate-100 dark:divide-slate-800 max-h-56 overflow-y-auto">
-                  {filteredItems.map(item => (
-                    <div
-                      key={item.id}
-                      onClick={() => addItemToReceiving(item)}
-                      className="p-2.5 hover:bg-sky-50 dark:hover:bg-slate-800/80 cursor-pointer flex items-center justify-between text-xs transition-colors"
-                    >
-                      <div>
-                        <span className="font-bold text-slate-900 dark:text-white">{item.name}</span>
-                        <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">
-                          {item.item_number} • Current Stock: {item.quantity}
+                <div className="border border-slate-200 dark:border-slate-800 rounded-lg divide-y divide-slate-100 dark:divide-slate-800 max-h-64 overflow-y-auto">
+                  {filteredItems.map(item => {
+                    const hasVariants = item.variants && item.variants.length > 0;
+                    return (
+                      <div
+                        key={item.id}
+                        className="p-2.5 hover:bg-sky-50/50 dark:hover:bg-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between text-xs transition-colors gap-2"
+                      >
+                        <div>
+                          <span className="font-bold text-slate-900 dark:text-white">{item.name}</span>
+                          <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono flex items-center gap-2">
+                            <span>{item.item_number}</span>
+                            <span>• Current Stock: {item.quantity}</span>
+                            {hasVariants && <span className="text-purple-600 dark:text-purple-400 font-bold">({item.variants?.length} variants)</span>}
+                          </div>
                         </div>
+
+                        {hasVariants ? (
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            {item.variants!.map(v => (
+                              <button
+                                key={v.id}
+                                type="button"
+                                onClick={() => addItemToReceiving(item, v)}
+                                className="px-2 py-1 bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/60 dark:hover:bg-purple-900/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 rounded text-[11px] font-semibold transition-colors flex items-center gap-1"
+                              >
+                                <span>{v.name}</span>
+                                <span className="font-mono text-[10px] opacity-75">({config.currency_symbol}{v.cost_price?.toFixed(2) || item.cost_price.toFixed(2)})</span>
+                              </button>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-slate-600 dark:text-slate-300 font-bold">
+                              Cost: {config.currency_symbol}{item.cost_price.toFixed(2)}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => addItemToReceiving(item)}
+                              className="px-2 py-1 bg-sky-600 hover:bg-sky-700 text-white rounded text-[10px] font-bold"
+                            >
+                              + Add
+                            </button>
+                          </div>
+                        )}
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-slate-600 dark:text-slate-300 font-bold">
-                          Cost: {config.currency_symbol}{item.cost_price.toFixed(2)}
-                        </span>
-                        <span className="px-2 py-1 bg-sky-600 text-white rounded text-[10px] font-bold">
-                          + Add
-                        </span>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

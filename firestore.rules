@@ -61,7 +61,12 @@ service cloud.firestore {
              (!('cost_price' in data) || data.cost_price is number) &&
              (!('category' in data) || (data.category is string && data.category.size() <= 100)) &&
              (!('barcode' in data) || (data.barcode is string && data.barcode.size() <= 100)) &&
-             (!('description' in data) || (data.description is string && data.description.size() <= 500));
+             (!('item_number' in data) || (data.item_number is string && data.item_number.size() <= 100)) &&
+             (!('description' in data) || (data.description is string && data.description.size() <= 500)) &&
+             (!('item_type' in data) || (data.item_type is string && data.item_type.size() <= 50)) &&
+             (!('unit_name' in data) || (data.unit_name is string && data.unit_name.size() <= 50)) &&
+             (!('variants' in data) || data.variants is list) &&
+             (!('is_deleted' in data) || data.is_deleted is bool);
     }
 
     // Customer validation

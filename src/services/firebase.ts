@@ -175,13 +175,18 @@ export async function pushLocalDataToCloud(
         item_id: item.id,
         storeId,
         name: item.name,
-        category: item.category,
-        cost_price: item.cost_price,
-        unit_price: item.unit_price,
-        quantity: item.quantity,
-        barcode: item.item_number,
-        reorder_level: item.reorder_level,
+        category: item.category || 'General',
+        cost_price: item.cost_price || 0,
+        unit_price: item.unit_price || 0,
+        quantity: item.quantity || 0,
+        barcode: item.item_number || '',
+        item_number: item.item_number || '',
+        reorder_level: item.reorder_level || 5,
         description: item.description || '',
+        item_type: item.item_type || 'standard',
+        unit_name: item.unit_name || (item.item_type === 'weighted' ? 'kg' : 'unit'),
+        variants: item.variants || [],
+        is_deleted: Boolean(item.is_deleted),
         updatedAt: new Date().toISOString()
       }, { merge: true });
       writeCount++;
@@ -261,13 +266,17 @@ export async function pullCloudData(user: User): Promise<{
       remoteItems.push({
         id: docSnap.id,
         item_number: d.barcode || d.item_number || '',
-        name: d.name,
+        name: d.name || '',
         category: d.category || 'General',
-        cost_price: d.cost_price || 0,
-        unit_price: d.unit_price || 0,
-        quantity: d.quantity || 0,
-        reorder_level: d.reorder_level || 5,
-        description: d.description || ''
+        cost_price: Number(d.cost_price) || 0,
+        unit_price: Number(d.unit_price) || 0,
+        quantity: Number(d.quantity) || 0,
+        reorder_level: Number(d.reorder_level) || 5,
+        description: d.description || '',
+        item_type: d.item_type || 'standard',
+        unit_name: d.unit_name || (d.item_type === 'weighted' ? 'kg' : 'unit'),
+        variants: Array.isArray(d.variants) ? d.variants : [],
+        is_deleted: Boolean(d.is_deleted),
       });
     });
 
@@ -315,13 +324,17 @@ export function subscribeToCloudStore(
         cloudItems.push({
           id: docSnap.id,
           item_number: d.barcode || d.item_number || '',
-          name: d.name,
+          name: d.name || '',
           category: d.category || 'General',
-          cost_price: d.cost_price || 0,
-          unit_price: d.unit_price || 0,
-          quantity: d.quantity || 0,
-          reorder_level: d.reorder_level || 5,
-          description: d.description || ''
+          cost_price: Number(d.cost_price) || 0,
+          unit_price: Number(d.unit_price) || 0,
+          quantity: Number(d.quantity) || 0,
+          reorder_level: Number(d.reorder_level) || 5,
+          description: d.description || '',
+          item_type: d.item_type || 'standard',
+          unit_name: d.unit_name || (d.item_type === 'weighted' ? 'kg' : 'unit'),
+          variants: Array.isArray(d.variants) ? d.variants : [],
+          is_deleted: Boolean(d.is_deleted),
         });
       });
       if (cloudItems.length > 0) {

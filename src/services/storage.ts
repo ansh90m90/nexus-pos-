@@ -13,6 +13,7 @@ const STORAGE_KEYS = {
   CURRENT_USER: 'ospos_current_user',
   DEVICE_AUTH: 'ospos_device_auth',
   CONFIG: 'ospos_config',
+  FIRST_TIME_SETUP: 'ospos_first_time_setup_done',
 };
 
 const DEFAULT_CONFIG: StoreConfig = {
@@ -27,6 +28,7 @@ const DEFAULT_CONFIG: StoreConfig = {
   receipt_footer: 'Return policy: 30 days with receipt.\nHave a wonderful day!',
   barcode_format: 'CODE128',
   enable_sound: true,
+  enable_loyalty: true,
   theme: 'light',
   accent_color: 'sky',
   upi_id: 'nexuspos@okhdfcbank',
@@ -73,365 +75,132 @@ const DEFAULT_EMPLOYEES: Employee[] = [
 const DEFAULT_CUSTOMERS: Customer[] = [
   {
     id: 'cust-1',
-    first_name: 'Eleanor',
-    last_name: 'Vance',
-    email: 'eleanor.vance@example.com',
-    phone_number: '555-234-5678',
-    address_1: '742 Evergreen Terrace',
-    city: 'Springfield',
-    company_name: 'Vance Design Studio',
-    account_number: 'ACC-8821',
+    first_name: 'Rahul',
+    last_name: 'Sharma',
+    email: 'rahul.sharma@example.com',
+    phone_number: '9876543210',
+    address_1: '124 Market Street',
+    city: 'New Delhi',
+    account_number: 'ACC-1001',
+    company_name: 'Sharma Enterprises',
     points: 120,
-    total_spent: 485.50,
-    credit_balance: 145.00,
-    credit_limit: 500.00,
-    credit_ledger: [
-      {
-        id: 'cld-1',
-        date: new Date(Date.now() - 86400000 * 6).toISOString(),
-        type: 'sale_credit',
-        amount: 220.00,
-        balance_after: 220.00,
-        note: 'Invoice #POS-2026-0004 On Account Purchase',
-        recorded_by: 'Admin User',
-      },
-      {
-        id: 'cld-2',
-        date: new Date(Date.now() - 86400000 * 2).toISOString(),
-        type: 'payment_received',
-        amount: 75.00,
-        balance_after: 145.00,
-        note: 'UPI Payment received against balance',
-        payment_method: 'UPI / QR Code',
-        recorded_by: 'Sarah Connor',
-      }
-    ],
-    comments: 'VIP customer, monthly account statement via WhatsApp',
+    credit_limit: 500,
+    credit_balance: 45.00,
+    total_spent: 850.00,
   },
   {
     id: 'cust-2',
-    first_name: 'Marcus',
-    last_name: 'Brody',
-    email: 'marcus.brody@example.com',
-    phone_number: '555-876-5432',
-    address_1: '221B Baker Street',
-    city: 'Seattle',
-    company_name: 'Pacific Arts',
-    account_number: 'ACC-9012',
-    points: 45,
-    total_spent: 190.20,
-    credit_balance: 0.00,
-    credit_limit: 300.00,
-    credit_ledger: [],
-    comments: 'Tax-exempt non-profit purchases',
-  },
-  {
-    id: 'cust-3',
-    first_name: 'Claire',
-    last_name: 'Redfield',
-    email: 'claire.r@example.com',
-    phone_number: '555-432-1098',
-    address_1: '456 Raccoon Way',
-    city: 'Portland',
-    points: 85,
-    total_spent: 312.00,
-    credit_balance: 68.50,
-    credit_limit: 250.00,
-    credit_ledger: [
-      {
-        id: 'cld-3',
-        date: new Date(Date.now() - 86400000 * 3).toISOString(),
-        type: 'sale_credit',
-        amount: 68.50,
-        balance_after: 68.50,
-        note: 'Invoice #POS-2026-0008 Store Credit Purchase',
-        recorded_by: 'Alex Rivera',
-      }
-    ],
+    first_name: 'Priya',
+    last_name: 'Patel',
+    email: 'priya.patel@example.com',
+    phone_number: '9811223344',
+    address_1: '45 Green Park',
+    city: 'Mumbai',
+    account_number: 'ACC-1002',
+    points: 75,
+    credit_limit: 1000,
+    credit_balance: 0,
+    total_spent: 420.00,
   },
 ];
 
 const DEFAULT_SUPPLIERS: Supplier[] = [
   {
-    id: 'supp-1',
-    company_name: 'Global Beverage Wholesale',
-    agency_name: 'Beverage Direct LLC',
-    first_name: 'David',
-    last_name: 'Kowalski',
-    email: 'orders@globalbeverage.com',
-    phone_number: '800-555-2244',
-    address_1: '1200 Logistics Blvd',
-    city: 'Oakland',
-    account_number: 'SUP-GBW-001',
-  },
-  {
-    id: 'supp-2',
-    company_name: 'Artisan Roasters Supply Co.',
-    agency_name: 'Specialty Coffee Network',
-    first_name: 'Maria',
-    last_name: 'Santos',
-    email: 'maria@artisanroasters.com',
-    phone_number: '888-555-9988',
-    address_1: '45 Industrial Pkwy',
-    city: 'San Francisco',
-    account_number: 'SUP-ARS-002',
-  },
-  {
-    id: 'supp-3',
-    company_name: 'Metro Bakery Distributors',
-    first_name: 'Paul',
-    last_name: 'Boulanger',
-    email: 'paul@metrobakery.com',
-    phone_number: '877-555-1122',
-    address_1: '890 Baker St',
-    city: 'San Jose',
-    account_number: 'SUP-MBD-003',
+    id: 'sup-1',
+    company_name: 'National Groceries & Grains Ltd',
+    agency_name: 'North Distributor',
+    first_name: 'Vikram',
+    last_name: 'Singh',
+    email: 'orders@nationalgrains.com',
+    phone_number: '9800112233',
+    address_1: 'Plot 44 Industrial Area',
+    city: 'Delhi',
+    account_number: 'SUP-4001',
   },
 ];
 
 const DEFAULT_ITEMS: Item[] = [
   {
-    id: 'item-101',
-    item_number: '10001',
-    name: 'Artisan Espresso Blend 12oz',
-    category: 'Coffee & Tea',
-    cost_price: 6.50,
-    unit_price: 14.99,
-    quantity: 48,
-    reorder_level: 15,
-    description: 'Fresh whole bean organic roast coffee',
-    image: 'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=300&auto=format&fit=crop&q=80',
+    id: 'item-chips-1',
+    item_number: 'SKU-CHIPS-101',
+    name: 'Classic Crispy Potato Chips',
+    category: 'Snacks & Packaged',
+    cost_price: 1.20,
+    unit_price: 2.00,
+    quantity: 45,
+    reorder_level: 10,
+    item_type: 'standard',
+    unit_name: 'pack',
+    variants: [
+      { id: 'var-chips-s', name: 'Small (35g)', item_number: 'SKU-CHIPS-S', cost_price: 0.60, unit_price: 1.00, quantity: 15 },
+      { id: 'var-chips-m', name: 'Medium (90g)', item_number: 'SKU-CHIPS-M', cost_price: 1.20, unit_price: 2.00, quantity: 20 },
+      { id: 'var-chips-l', name: 'Party Pack (200g)', item_number: 'SKU-CHIPS-L', cost_price: 2.30, unit_price: 3.80, quantity: 10 },
+    ],
+    description: 'Golden fried crispy potato chips with savory seasoning',
   },
   {
-    id: 'item-102',
-    item_number: '10002',
-    name: 'Caramel Macchiato (Large)',
-    category: 'Prepared Drinks',
-    cost_price: 1.20,
-    unit_price: 5.75,
+    id: 'item-rahul-rice',
+    item_number: 'SKU-RICE-202',
+    name: 'Rahul Special Royal Basmati Rice',
+    category: 'Grocery & Rashan',
+    cost_price: 5.50,
+    unit_price: 8.50,
+    quantity: 30,
+    reorder_level: 8,
+    item_type: 'standard',
+    unit_name: 'pack',
+    variants: [
+      { id: 'var-rice-1k', name: '1kg Bag', item_number: 'SKU-RICE-1KG', cost_price: 5.50, unit_price: 8.50, quantity: 15 },
+      { id: 'var-rice-5k', name: '5kg Family Pack', item_number: 'SKU-RICE-5KG', cost_price: 24.00, unit_price: 38.00, quantity: 15 },
+    ],
+    description: 'Aromatic extra long grain Basmati rice',
+  },
+  {
+    id: 'item-rashan-sugar',
+    item_number: 'SKU-SUGAR-303',
+    name: 'Pure White Sugar (Loose Rashan)',
+    category: 'Grocery & Rashan',
+    cost_price: 0.80,
+    unit_price: 1.40,
+    quantity: 100,
+    reorder_level: 20,
+    item_type: 'weighted',
+    unit_name: 'kg',
+    description: 'Open value weighed loose sugar for retail customers',
+  },
+  {
+    id: 'item-rashan-flour',
+    item_number: 'SKU-ATTA-404',
+    name: 'Fresh Whole Wheat Atta / Flour',
+    category: 'Grocery & Rashan',
+    cost_price: 0.65,
+    unit_price: 1.10,
     quantity: 150,
     reorder_level: 25,
-    description: 'Handcrafted espresso with steamed milk and vanilla caramel',
+    item_type: 'weighted',
+    unit_name: 'kg',
+    description: 'Stone ground whole wheat flour in loose kilograms',
   },
   {
-    id: 'item-103',
-    item_number: '10003',
-    name: 'Matcha Green Tea Latte',
-    category: 'Prepared Drinks',
-    cost_price: 1.40,
-    unit_price: 5.25,
-    quantity: 85,
-    reorder_level: 20,
-    description: 'Ceremonial grade Uji matcha with oat milk',
-  },
-  {
-    id: 'item-104',
-    item_number: '10004',
-    name: 'Butter Croissant Fresh Baked',
-    category: 'Bakery',
-    cost_price: 0.95,
-    unit_price: 3.85,
-    quantity: 24,
-    reorder_level: 10,
-    description: 'Flaky 100% French butter pastry',
-  },
-  {
-    id: 'item-105',
-    item_number: '10005',
-    name: 'Organic Blueberry Muffin',
-    category: 'Bakery',
-    cost_price: 1.10,
-    unit_price: 4.10,
-    quantity: 18,
-    reorder_level: 12,
-    description: 'Loaded with wild organic Maine blueberries',
-  },
-  {
-    id: 'item-106',
-    item_number: '10006',
-    name: 'Insulated Travel Tumbler 16oz',
-    category: 'Merchandise',
-    cost_price: 9.00,
-    unit_price: 24.50,
-    quantity: 32,
-    reorder_level: 8,
-    description: 'Double-wall stainless steel vacuum insulated',
-    image: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=300&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'item-107',
-    item_number: '10007',
-    name: 'Sparkling Mineral Water 500ml',
-    category: 'Beverages',
-    cost_price: 0.70,
-    unit_price: 2.50,
-    quantity: 6, // Low stock on purpose
-    reorder_level: 15,
-    description: 'Crisp natural sparkling mountain water',
-  },
-  {
-    id: 'item-108',
-    item_number: '10008',
-    name: 'Dark Chocolate Sea Salt Bar 85g',
-    category: 'Snacks',
-    cost_price: 1.50,
-    unit_price: 4.50,
-    quantity: 42,
-    reorder_level: 15,
-    description: '72% single-origin cacao with fleur de sel',
-  },
-  {
-    id: 'item-109',
-    item_number: '10009',
-    name: 'Gourmet Avocado Toast',
-    category: 'Food',
-    cost_price: 2.80,
-    unit_price: 8.95,
+    id: 'item-choc-biscuit',
+    item_number: 'SKU-BISC-505',
+    name: 'Chocolate Cream Crunch Biscuits',
+    category: 'Snacks & Packaged',
+    cost_price: 0.90,
+    unit_price: 1.75,
     quantity: 50,
-    reorder_level: 10,
-    description: 'Toasted sourdough with crushed avocado, radish and chili flakes',
-  },
-  {
-    id: 'item-110',
-    item_number: '10010',
-    name: 'Pour-Over Glass Carafe 800ml',
-    category: 'Merchandise',
-    cost_price: 12.50,
-    unit_price: 29.99,
-    quantity: 3, // Low stock on purpose
-    reorder_level: 5,
-    description: 'Borosilicate heat-resistant coffee dripper server',
+    reorder_level: 12,
+    item_type: 'standard',
+    unit_name: 'pack',
+    description: 'Double chocolate layered cream biscuits',
   },
 ];
 
-const DEFAULT_SALES: Sale[] = [
-  {
-    id: 'POS-2026-001',
-    sale_time: new Date(Date.now() - 3600000 * 4).toISOString(),
-    customer_id: 'cust-1',
-    customer_name: 'Eleanor Vance',
-    employee_id: 'emp-1',
-    employee_name: 'Admin User',
-    items: [
-      {
-        item_id: 'item-101',
-        item_number: '10001',
-        name: 'Artisan Espresso Blend 12oz',
-        category: 'Coffee & Tea',
-        cost_price: 6.50,
-        unit_price: 14.99,
-        quantity: 2,
-        discount_percent: 0,
-        tax_percent: 8.5,
-        total: 29.98,
-      },
-      {
-        item_id: 'item-104',
-        item_number: '10004',
-        name: 'Butter Croissant Fresh Baked',
-        category: 'Bakery',
-        cost_price: 0.95,
-        unit_price: 3.85,
-        quantity: 2,
-        discount_percent: 0,
-        tax_percent: 8.5,
-        total: 7.70,
-      }
-    ],
-    subtotal: 37.68,
-    tax_total: 3.20,
-    discount_total: 0,
-    total: 40.88,
-    payments: [
-      { payment_type: 'UPI / QR Code', payment_amount: 40.88, transaction_ref: 'UPI893420183' }
-    ],
-    change_due: 0,
-    status: 'completed',
-  },
-  {
-    id: 'POS-2026-002',
-    sale_time: new Date(Date.now() - 3600000 * 2).toISOString(),
-    customer_name: 'Walk-in Customer',
-    employee_id: 'emp-3',
-    employee_name: 'Alex Rivera',
-    items: [
-      {
-        item_id: 'item-102',
-        item_number: '10002',
-        name: 'Caramel Macchiato (Large)',
-        category: 'Prepared Drinks',
-        cost_price: 1.20,
-        unit_price: 5.75,
-        quantity: 1,
-        discount_percent: 0,
-        tax_percent: 8.5,
-        total: 5.75,
-      },
-      {
-        item_id: 'item-105',
-        item_number: '10005',
-        name: 'Organic Blueberry Muffin',
-        category: 'Bakery',
-        cost_price: 1.10,
-        unit_price: 4.10,
-        quantity: 1,
-        discount_percent: 0,
-        tax_percent: 8.5,
-        total: 4.10,
-      }
-    ],
-    subtotal: 9.85,
-    tax_total: 0.84,
-    discount_total: 0,
-    total: 10.69,
-    payments: [
-      { payment_type: 'Cash', payment_amount: 20.00 }
-    ],
-    change_due: 9.31,
-    status: 'completed',
-  }
-];
+const DEFAULT_SALES: Sale[] = [];
 
-const DEFAULT_EXPENSES: Expense[] = [
-  {
-    id: 'exp-1',
-    date: new Date(Date.now() - 86400000 * 2).toISOString().slice(0, 10),
-    amount: 85.00,
-    category: 'Store Supplies',
-    description: 'Receipt rolls and paper bags packaging',
-    employee_name: 'Admin User',
-    recipient: 'Office Depot',
-  },
-  {
-    id: 'exp-2',
-    date: new Date(Date.now() - 86400000 * 5).toISOString().slice(0, 10),
-    amount: 140.00,
-    category: 'Maintenance',
-    description: 'Espresso machine water filter replacement & calibration',
-    employee_name: 'Sarah Connor',
-    recipient: 'Espresso Tech Pro',
-  },
-];
+const DEFAULT_EXPENSES: Expense[] = [];
 
-const DEFAULT_CASHUPS: Cashup[] = [
-  {
-    id: 'cashup-001',
-    open_time: new Date(Date.now() - 86400000).toISOString(),
-    close_time: new Date(Date.now() - 86400000 + 3600000 * 9).toISOString(),
-    open_employee_id: 'emp-1',
-    open_employee_name: 'Admin User',
-    close_employee_id: 'emp-1',
-    close_employee_name: 'Admin User',
-    opening_amount: 200.00,
-    cash_sales: 345.50,
-    cash_in: 0,
-    cash_out: 0,
-    counted_cash: 545.50,
-    difference: 0,
-    notes: 'Register balanced perfectly at close.',
-    status: 'closed',
-  }
-];
+const DEFAULT_CASHUPS: Cashup[] = [];
 
 class StorageService {
   private getItem<T>(key: string, defaultValue: T): T {
@@ -640,21 +409,45 @@ class StorageService {
 
     // Deduct inventory quantities
     for (const saleItem of sale.items) {
-      const itemIdx = items.findIndex(i => i.id === saleItem.item_id);
+      let itemIdx = items.findIndex(i => i.id === saleItem.item_id);
+      if (itemIdx === -1) {
+        itemIdx = items.findIndex(i => saleItem.item_id.startsWith(i.id));
+      }
+      if (itemIdx === -1 && saleItem.variant_id) {
+        itemIdx = items.findIndex(i => i.variants && i.variants.some(v => v.id === saleItem.variant_id));
+      }
+      if (itemIdx === -1 && saleItem.item_number) {
+        itemIdx = items.findIndex(i => i.item_number === saleItem.item_number || (i.variants && i.variants.some(v => v.item_number === saleItem.item_number)));
+      }
+
       if (itemIdx !== -1) {
-        items[itemIdx].quantity = Math.max(0, items[itemIdx].quantity - saleItem.quantity);
+        const currentItem = items[itemIdx];
+        if (saleItem.variant_id && currentItem.variants && currentItem.variants.length > 0) {
+          const varIdx = currentItem.variants.findIndex(v => v.id === saleItem.variant_id);
+          if (varIdx !== -1) {
+            currentItem.variants[varIdx].quantity = Math.max(0, (currentItem.variants[varIdx].quantity || 0) - saleItem.quantity);
+          }
+          currentItem.quantity = currentItem.variants.reduce((sum, v) => sum + (v.quantity || 0), 0);
+        } else {
+          currentItem.quantity = Math.max(0, currentItem.quantity - saleItem.quantity);
+        }
       }
     }
     this.saveItems(items);
 
     // Update customer spend, loyalty points, and credit balance if attached
     if (sale.customer_id) {
+      const config = this.getConfig();
+      const isLoyaltyActive = config.enable_loyalty !== false;
       const customers = this.getCustomers();
       const custIdx = customers.findIndex(c => c.id === sale.customer_id);
       if (custIdx !== -1) {
         const cust = customers[custIdx];
         cust.total_spent += sale.total;
-        cust.points += Math.floor(sale.total);
+        if (isLoyaltyActive) {
+          const ratio = config.loyalty_points_ratio && config.loyalty_points_ratio > 0 ? config.loyalty_points_ratio : 1;
+          cust.points += Math.floor(sale.total * ratio);
+        }
 
         // Check if any payment was made using 'Customer Credit'
         const creditPayments = (sale.payments || []).filter(p => p.payment_type === 'Customer Credit');
@@ -698,10 +491,29 @@ class StorageService {
 
     // Restore inventory quantities
     const items = this.getItems();
-    for (const item of sale.items) {
-      const itemIdx = items.findIndex(i => i.id === item.item_id);
+    for (const saleItem of sale.items) {
+      let itemIdx = items.findIndex(i => i.id === saleItem.item_id);
+      if (itemIdx === -1) {
+        itemIdx = items.findIndex(i => saleItem.item_id.startsWith(i.id));
+      }
+      if (itemIdx === -1 && saleItem.variant_id) {
+        itemIdx = items.findIndex(i => i.variants && i.variants.some(v => v.id === saleItem.variant_id));
+      }
+      if (itemIdx === -1 && saleItem.item_number) {
+        itemIdx = items.findIndex(i => i.item_number === saleItem.item_number || (i.variants && i.variants.some(v => v.item_number === saleItem.item_number)));
+      }
+
       if (itemIdx !== -1) {
-        items[itemIdx].quantity += item.quantity;
+        const currentItem = items[itemIdx];
+        if (saleItem.variant_id && currentItem.variants && currentItem.variants.length > 0) {
+          const varIdx = currentItem.variants.findIndex(v => v.id === saleItem.variant_id);
+          if (varIdx !== -1) {
+            currentItem.variants[varIdx].quantity = (currentItem.variants[varIdx].quantity || 0) + saleItem.quantity;
+          }
+          currentItem.quantity = currentItem.variants.reduce((sum, v) => sum + (v.quantity || 0), 0);
+        } else {
+          currentItem.quantity += saleItem.quantity;
+        }
       }
     }
     this.saveItems(items);
@@ -727,10 +539,30 @@ class StorageService {
 
     // Increment inventory stock and update cost price
     for (const rItem of rec.items) {
-      const itemIdx = items.findIndex(i => i.id === rItem.item_id);
+      let itemIdx = items.findIndex(i => i.id === rItem.item_id);
+      if (itemIdx === -1) {
+        itemIdx = items.findIndex(i => rItem.item_id.startsWith(i.id));
+      }
+      if (itemIdx === -1) {
+        itemIdx = items.findIndex(i => i.item_number === rItem.item_number || (i.variants && i.variants.some(v => v.item_number === rItem.item_number)));
+      }
+
       if (itemIdx !== -1) {
-        items[itemIdx].quantity += rItem.quantity;
-        items[itemIdx].cost_price = rItem.cost_price;
+        const currentItem = items[itemIdx];
+        const matchedVariant = currentItem.variants?.find(v => 
+          v.id === (rItem as any).variant_id || 
+          v.item_number === rItem.item_number ||
+          rItem.item_id.includes(v.id)
+        );
+
+        if (matchedVariant) {
+          matchedVariant.quantity = (matchedVariant.quantity || 0) + rItem.quantity;
+          matchedVariant.cost_price = rItem.cost_price;
+          currentItem.quantity = currentItem.variants!.reduce((sum, v) => sum + (v.quantity || 0), 0);
+        } else {
+          currentItem.quantity += rItem.quantity;
+          currentItem.cost_price = rItem.cost_price;
+        }
       }
     }
     this.saveItems(items);
@@ -897,9 +729,81 @@ class StorageService {
     });
   }
 
+  public isFirstTimeSetup(): boolean {
+    // If flag is explicitly set to true, return false
+    const setupDone = localStorage.getItem(STORAGE_KEYS.FIRST_TIME_SETUP);
+    if (setupDone === 'true') {
+      return false;
+    }
+    // If not set yet, it is the first time
+    return true;
+  }
+
+  public markFirstTimeSetupComplete(): void {
+    localStorage.setItem(STORAGE_KEYS.FIRST_TIME_SETUP, 'true');
+  }
+
+  public resetFirstTimeSetup(): void {
+    localStorage.removeItem(STORAGE_KEYS.FIRST_TIME_SETUP);
+  }
+
+  public hasStaff(): boolean {
+    const employees = this.getEmployees();
+    return employees.some(e => e.role !== 'admin' && e.is_active !== false);
+  }
+
+  public getStaffCount(): number {
+    const employees = this.getEmployees();
+    return employees.filter(e => e.role !== 'admin' && e.is_active !== false).length;
+  }
+
+  public deleteAllStaff(): Employee[] {
+    const employees = this.getEmployees();
+    // Keep only active admin accounts (or at least the primary admin)
+    let admins = employees.filter(e => e.role === 'admin');
+    if (admins.length === 0) {
+      admins = [
+        {
+          id: 'emp-admin-owner',
+          first_name: 'Store',
+          last_name: 'Owner',
+          username: 'admin',
+          role: 'admin',
+          pin: '1234',
+          email: 'owner@nexuspos.io',
+          phone_number: '555-0100',
+          is_active: true,
+        }
+      ];
+    }
+    this.saveEmployees(admins);
+    return admins;
+  }
+
   public deleteEmployee(id: string): boolean {
     const employees = this.getEmployees();
     const updated = employees.filter(e => e.id !== id);
+    
+    // Ensure at least one admin exists if all were deleted
+    if (updated.length === 0 || !updated.some(e => e.role === 'admin')) {
+      const fallbackAdmin: Employee = {
+        id: 'emp-admin-owner',
+        first_name: 'Store',
+        last_name: 'Owner',
+        username: 'admin',
+        role: 'admin',
+        pin: '1234',
+        email: 'owner@nexuspos.io',
+        phone_number: '555-0100',
+        is_active: true,
+      };
+      if (updated.length === 0) {
+        updated.push(fallbackAdmin);
+      } else {
+        updated[0].role = 'admin';
+      }
+    }
+
     this.saveEmployees(updated);
     const curr = this.getItem<Employee | null>(STORAGE_KEYS.CURRENT_USER, null);
     if (curr && curr.id === id) {
@@ -957,16 +861,19 @@ class StorageService {
     }
   }
 
+  public clearAllStoreData(): void {
+    this.saveItems([]);
+    this.saveCustomers([]);
+    this.saveSuppliers([]);
+    this.saveSales([]);
+    this.setItem(STORAGE_KEYS.RECEIVINGS, []);
+    this.setItem(STORAGE_KEYS.EXPENSES, []);
+    this.saveCashups([]);
+  }
+
   public resetDemoData(): void {
-    localStorage.removeItem(STORAGE_KEYS.ITEMS);
-    localStorage.removeItem(STORAGE_KEYS.CUSTOMERS);
-    localStorage.removeItem(STORAGE_KEYS.SUPPLIERS);
-    localStorage.removeItem(STORAGE_KEYS.SALES);
-    localStorage.removeItem(STORAGE_KEYS.RECEIVINGS);
-    localStorage.removeItem(STORAGE_KEYS.CASHUPS);
-    localStorage.removeItem(STORAGE_KEYS.EXPENSES);
-    localStorage.removeItem(STORAGE_KEYS.EMPLOYEES);
-    localStorage.removeItem(STORAGE_KEYS.CONFIG);
+    this.clearAllStoreData();
+    localStorage.removeItem(STORAGE_KEYS.FIRST_TIME_SETUP);
   }
 }
 

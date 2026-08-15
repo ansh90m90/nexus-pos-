@@ -96,21 +96,40 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
                 <span className="w-1/6 text-right">Total</span>
               </div>
 
-              {sale.items.map((item, idx) => (
-                <div key={idx} className="space-y-0.5">
-                  <div className="flex justify-between">
-                    <span className="w-1/2 truncate font-medium">{item.name}</span>
-                    <span className="w-1/6 text-center font-bold">{item.quantity}</span>
-                    <span className="w-1/6 text-right">{config.currency_symbol}{item.unit_price.toFixed(2)}</span>
-                    <span className="w-1/6 text-right font-bold text-slate-900 dark:text-white">{config.currency_symbol}{item.total.toFixed(2)}</span>
-                  </div>
-                  {item.discount_percent > 0 && (
-                    <div className="text-[10px] text-emerald-600 dark:text-emerald-400 italic pl-2">
-                      Disc: {item.discount_percent}% off
+              {sale.items.map((item, idx) => {
+                const isWeighted = item.item_type === 'weighted';
+                const weightDisplay = isWeighted && item.weight_in_grams 
+                  ? (item.weight_in_grams >= 1000 ? `${(item.weight_in_grams/1000).toFixed(3)}kg` : `${item.weight_in_grams.toFixed(0)}g`)
+                  : null;
+
+                return (
+                  <div key={idx} className="space-y-0.5">
+                    <div className="flex justify-between">
+                      <div className="w-1/2 pr-1">
+                        <span className="truncate font-medium block">
+                          {item.name}
+                          {item.variant_name && <span className="text-[10px] text-slate-500"> ({item.variant_name})</span>}
+                        </span>
+                        {weightDisplay && (
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-normal">
+                            Wt: {weightDisplay} @ {config.currency_symbol}{item.unit_price.toFixed(2)}/kg
+                          </span>
+                        )}
+                      </div>
+                      <span className="w-1/6 text-center font-bold">
+                        {isWeighted ? (item.quantity < 1 ? item.quantity.toFixed(3) : item.quantity) : item.quantity}
+                      </span>
+                      <span className="w-1/6 text-right">{config.currency_symbol}{item.unit_price.toFixed(2)}</span>
+                      <span className="w-1/6 text-right font-bold text-slate-900 dark:text-white">{config.currency_symbol}{item.total.toFixed(2)}</span>
                     </div>
-                  )}
-                </div>
-              ))}
+                    {item.discount_percent > 0 && (
+                      <div className="text-[10px] text-emerald-600 dark:text-emerald-400 italic pl-2">
+                        Disc: {item.discount_percent}% off
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
 
             {/* Totals */}

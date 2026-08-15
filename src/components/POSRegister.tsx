@@ -20,11 +20,17 @@ import {
   Copy,
   CheckCheck,
   ShieldCheck,
-  ShoppingCart
+  ShoppingCart,
+  Scale,
+  Layers,
+  Edit2
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
-import { Item, Customer, Sale, SaleItem, Payment, StoreConfig, Employee } from '../types/pos';
+import { Item, Customer, Sale, SaleItem, Payment, StoreConfig, Employee, ItemVariant } from '../types/pos';
 import { sound } from '../services/audio';
+import { WeighedItemModal } from './WeighedItemModal';
+import { VariantSelectModal } from './VariantSelectModal';
+import { searchItems } from '../utils/fuzzySearch';
 
 interface POSRegisterProps {
   items: Item[];
@@ -40,6 +46,7 @@ interface POSRegisterProps {
   onShowReceipt: (sale: Sale) => void;
   onOpenSwitchUser?: () => void;
   onOpenShortcuts?: () => void;
+  onNavigateToInventory?: () => void;
 }
 
 export const POSRegister: React.FC<POSRegisterProps> = ({
@@ -54,8 +61,7 @@ export const POSRegister: React.FC<POSRegisterProps> = ({
   onResumeSale,
   onDeleteHeldSale,
   onShowReceipt,
-  onOpenSwitchUser,
-  onOpenShortcuts,
+  onNavigateToInventory,
 }) => {
   const [cart, setCart] = useState<SaleItem[]>([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
@@ -82,6 +88,13 @@ export const POSRegister: React.FC<POSRegisterProps> = ({
   const [isHeldModalOpen, setIsHeldModalOpen] = useState(false);
   const [isNewCustModalOpen, setIsNewCustModalOpen] = useState(false);
   const [showOrderDiscountModal, setShowOrderDiscountModal] = useState(false);
+  const [isCancelConfirmOpen, setIsCancelConfirmOpen] = useState(false);
+
+  // Weighed & Variant Modals
+  const [weighedModalItem, setWeighedModalItem] = useState<Item | null>(null);
+  const [weighedModalVariant, setWeighedModalVariant] = useState<ItemVariant | undefined>(undefined);
+  const [editingCartItemIndex, setEditingCartItemIndex] = useState<number | null>(null);
+  const [variantModalItem, setVariantModalItem] = useState<Item | null>(null);
   
   // New Customer inputs
   const [newCustFirst, setNewCustFirst] = useState('');
@@ -100,18 +113,9 @@ export const POSRegister: React.FC<POSRegisterProps> = ({
     return ['All', ...Array.from(set)];
   }, [items]);
 
-  // Filtered items catalog
+  // Filtered items catalog with Smart Phonetic & Typo-Tolerant Search
   const filteredItems = useMemo(() => {
-    return items.filter(item => {
-      if (item.is_deleted) return false;
-      const matchesCategory = selectedCategory === 'All' || item.category === selectedCategory;
-      const q = searchQuery.toLowerCase().trim();
-      const matchesSearch = !q || 
-        item.name.toLowerCase().includes(q) || 
-        item.item_number.toLowerCase().includes(q) ||
-        (item.category && item.category.toLowerCase().includes(q));
-      return matchesCategory && matchesSearch;
-    });
+    return searchItems(items, searchQuery, selectedCategory);
   }, [items, selectedCategory, searchQuery]);
 
   const selectedCustomer = useMemo(() => {
@@ -127,42 +131,43 @@ export const POSRegister: React.FC<POSRegisterProps> = ({
     for (const item of cart) {
       const lineBase = item.unit_price * item.quantity;
       const itemDisc = lineBase * (item.discount_percent / 100);
-      const afterItemDisc = lineBase - itemDisc;
-      const lineTax = afterItemDisc * (item.tax_percent / 100);
-
+      const itemTax = (lineBase - itemDisc) * (item.tax_percent / 100);
+      
       sub += lineBase;
       lineDisc += itemDisc;
-      tax += lineTax;
+      tax += itemTax;
     }
 
-    const baseAfterLines = sub - lineDisc;
-    const globalOrderDisc = baseAfterLines * (orderDiscountPercent / 100);
-    const totalDiscounts = lineDisc + globalOrderDisc + loyaltyDiscountAmount;
+    // Apply Order Level Discount
+    const orderDiscVal = sub * (orderDiscountPercent / 100);
+    const totalDiscounts = lineDisc + orderDiscVal + loyaltyDiscountAmount;
     
-    // Tax recalculation with order level discounts
+    // Tax after total discounts
     const taxableAmount = Math.max(0, sub - totalDiscounts);
-    const finalTax = taxableAmount * (config.default_tax_rate / 100);
-    const finalGrandTotal = Math.max(0, taxableAmount + finalTax);
+    const effectiveTax = (taxableAmount * (config.default_tax_rate / 100));
+    const total = Math.max(0, taxableAmount + effectiveTax);
 
     return {
       subtotal: sub,
       lineDiscountsTotal: totalDiscounts,
-      taxTotal: finalTax,
-      rawTotal: sub + finalTax,
-      grandTotal: finalGrandTotal,
+      taxTotal: effectiveTax,
+      grandTotal: total,
     };
   }, [cart, orderDiscountPercent, loyaltyDiscountAmount, config.default_tax_rate]);
 
-  // Keyboard Shortcuts Handler
+  // Hotkeys handling
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'F1') {
-        e.preventDefault();
-        onOpenShortcuts?.();
-      } else if (e.key === 'F2') {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        if (e.key === 'Escape') {
+          (e.target as HTMLElement).blur();
+        }
+        return;
+      }
+
+      if (e.key === 'F2') {
         e.preventDefault();
         barcodeInputRef.current?.focus();
-        barcodeInputRef.current?.select();
       } else if (e.key === 'F4') {
         e.preventDefault();
         if (cart.length > 0 && !isPaymentModalOpen) {
@@ -173,26 +178,53 @@ export const POSRegister: React.FC<POSRegisterProps> = ({
         if (cart.length > 0) {
           handleHoldCurrent();
         }
-      } else if (e.key === 'F9') {
-        e.preventDefault();
-        onOpenSwitchUser?.();
       } else if (e.key === 'Escape') {
         if (isPaymentModalOpen) setIsPaymentModalOpen(false);
         if (isHeldModalOpen) setIsHeldModalOpen(false);
         if (isNewCustModalOpen) setIsNewCustModalOpen(false);
         if (showOrderDiscountModal) setShowOrderDiscountModal(false);
+        if (weighedModalItem) setWeighedModalItem(null);
+        if (variantModalItem) setVariantModalItem(null);
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [cart, isPaymentModalOpen, isHeldModalOpen, isNewCustModalOpen, showOrderDiscountModal]);
+  }, [cart, isPaymentModalOpen, isHeldModalOpen, isNewCustModalOpen, showOrderDiscountModal, weighedModalItem, variantModalItem]);
 
-  // Cart operations
-  const addItemToCart = (item: Item) => {
+  // Catalog Item Click Handler
+  const handleCatalogItemClick = (item: Item, variant?: ItemVariant) => {
+    if (item.item_type === 'weighted') {
+      setWeighedModalItem(item);
+      setWeighedModalVariant(variant);
+      setEditingCartItemIndex(null);
+      return;
+    }
+
+    if (variant) {
+      addItemToCart(item, variant);
+      return;
+    }
+
+    if (item.variants && item.variants.length > 0) {
+      // Pick first variant or add default
+      addItemToCart(item, item.variants[0]);
+      return;
+    }
+
+    addItemToCart(item);
+  };
+
+  // Standard Item add to Cart
+  const addItemToCart = (item: Item, variant?: ItemVariant) => {
     sound.playBeep();
+    const itemIdKey = variant ? `${item.id}-var-${variant.id}` : item.id;
+    const unitPrice = variant ? variant.unit_price : item.unit_price;
+    const costPrice = variant ? (variant.cost_price ?? item.cost_price) : item.cost_price;
+    const itemNumber = variant ? (variant.item_number || item.item_number) : item.item_number;
+
     setCart(prev => {
-      const existingIdx = prev.findIndex(i => i.item_id === item.id);
+      const existingIdx = prev.findIndex(i => i.item_id === itemIdKey);
       if (existingIdx > -1) {
         const updated = [...prev];
         const currentQty = updated[existingIdx].quantity;
@@ -208,23 +240,141 @@ export const POSRegister: React.FC<POSRegisterProps> = ({
         };
         return updated;
       } else {
-        const lineBase = item.unit_price * 1;
+        const lineBase = unitPrice * 1;
         const lineTax = lineBase * (config.default_tax_rate / 100);
         const newItem: SaleItem = {
-          item_id: item.id,
-          item_number: item.item_number,
+          item_id: itemIdKey,
+          item_number: itemNumber,
           name: item.name,
           category: item.category,
-          cost_price: item.cost_price,
-          unit_price: item.unit_price,
+          cost_price: costPrice,
+          unit_price: unitPrice,
           quantity: 1,
           discount_percent: 0,
           tax_percent: config.default_tax_rate,
           total: lineBase + lineTax,
+          variant_id: variant?.id,
+          variant_name: variant?.name,
+          item_type: 'standard',
         };
         return [newItem, ...prev];
       }
     });
+  };
+
+  // Add or Update Weighed (Rashan) Item in Cart
+  const handleConfirmWeighedItem = (data: {
+    quantity: number;
+    weight_in_grams: number;
+    target_price_requested?: number;
+    unit_price: number;
+    variant_id?: string;
+    variant_name?: string;
+  }) => {
+    if (!weighedModalItem) return;
+    sound.playBeep();
+
+    const lineBase = data.unit_price * data.quantity;
+    const lineTax = lineBase * (config.default_tax_rate / 100);
+
+    if (editingCartItemIndex !== null && editingCartItemIndex >= 0 && editingCartItemIndex < cart.length) {
+      // Update existing line
+      setCart(prev => {
+        const updated = [...prev];
+        const existing = updated[editingCartItemIndex];
+        const lineDiscount = lineBase * (existing.discount_percent / 100);
+        const finalTax = (lineBase - lineDiscount) * (existing.tax_percent / 100);
+        
+        updated[editingCartItemIndex] = {
+          ...existing,
+          unit_price: data.unit_price,
+          quantity: data.quantity,
+          weight_in_grams: data.weight_in_grams,
+          target_price_requested: data.target_price_requested,
+          total: lineBase - lineDiscount + finalTax,
+          variant_id: data.variant_id,
+          variant_name: data.variant_name,
+        };
+        return updated;
+      });
+    } else {
+      // Add new weighed line
+      const uniqueLineId = `${weighedModalItem.id}-wt-${Date.now()}`;
+      const newSaleItem: SaleItem = {
+        item_id: uniqueLineId,
+        item_number: weighedModalItem.item_number,
+        name: weighedModalItem.name,
+        category: weighedModalItem.category,
+        cost_price: weighedModalItem.cost_price,
+        unit_price: data.unit_price,
+        quantity: data.quantity,
+        weight_in_grams: data.weight_in_grams,
+        target_price_requested: data.target_price_requested,
+        discount_percent: 0,
+        tax_percent: config.default_tax_rate,
+        total: lineBase + lineTax,
+        item_type: 'weighted',
+        variant_id: data.variant_id,
+        variant_name: data.variant_name,
+      };
+      setCart(prev => [newSaleItem, ...prev]);
+    }
+
+    setWeighedModalItem(null);
+    setWeighedModalVariant(undefined);
+    setEditingCartItemIndex(null);
+  };
+
+  // Open Weighed Item Editor from Cart
+  const handleEditWeighedCartItem = (saleItem: SaleItem, index: number) => {
+    // Find base item
+    const baseItem = items.find(i => 
+      i.id === saleItem.item_id || 
+      saleItem.item_id.startsWith(i.id) || 
+      i.item_number === saleItem.item_number ||
+      i.name === saleItem.name
+    );
+
+    if (baseItem) {
+      setWeighedModalItem(baseItem);
+      if (saleItem.variant_id && baseItem.variants) {
+        setWeighedModalVariant(baseItem.variants.find(v => v.id === saleItem.variant_id));
+      } else {
+        setWeighedModalVariant(undefined);
+      }
+      setEditingCartItemIndex(index);
+    } else {
+      // Create a temporary mock item
+      const mockItem: Item = {
+        id: saleItem.item_id,
+        item_number: saleItem.item_number,
+        name: saleItem.name,
+        category: saleItem.category,
+        cost_price: saleItem.cost_price,
+        unit_price: saleItem.unit_price,
+        quantity: 100,
+        reorder_level: 5,
+        item_type: 'weighted',
+        unit_name: 'kg',
+      };
+      setWeighedModalItem(mockItem);
+      setEditingCartItemIndex(index);
+    }
+  };
+
+  // Handle Variant Selection Modal Confirmation
+  const handleSelectVariant = (variant: ItemVariant) => {
+    if (!variantModalItem) return;
+    if (variantModalItem.item_type === 'weighted') {
+      const itemToWeigh = variantModalItem;
+      setVariantModalItem(null);
+      setWeighedModalItem(itemToWeigh);
+      setWeighedModalVariant(variant);
+      setEditingCartItemIndex(null);
+    } else {
+      addItemToCart(variantModalItem, variant);
+      setVariantModalItem(null);
+    }
   };
 
   const updateQuantity = (itemId: string, newQty: number) => {
@@ -279,36 +429,73 @@ export const POSRegister: React.FC<POSRegisterProps> = ({
     setCart(prev => prev.filter(i => i.item_id !== itemId));
   };
 
-  const clearCart = () => {
+  const handleCancelClick = () => {
     if (cart.length === 0) return;
-    if (window.confirm('Clear all items in the current transaction?')) {
-      setCart([]);
-      setSelectedCustomerId('');
-      setOrderDiscountPercent(0);
-      setLoyaltyDiscountAmount(0);
-      setRedeemedPoints(0);
-    }
+    setIsCancelConfirmOpen(true);
   };
 
-  // Barcode / Scanner submission
+  const confirmClearCart = () => {
+    setCart([]);
+    setSelectedCustomerId('');
+    setOrderDiscountPercent(0);
+    setLoyaltyDiscountAmount(0);
+    setRedeemedPoints(0);
+    setIsCancelConfirmOpen(false);
+    sound.playBeep();
+  };
+
+  // Barcode / Scanner / Quick Lookup submission
   const handleBarcodeSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const barcode = barcodeInput.trim();
     if (!barcode) return;
 
-    const matched = items.find(i => 
+    // 1. Direct match on variant barcode / SKU
+    for (const item of items) {
+      if (item.is_deleted) continue;
+      if (item.variants && item.variants.length > 0) {
+        const matchedVar = item.variants.find(v => 
+          v.item_number?.toLowerCase() === barcode.toLowerCase() ||
+          v.name.toLowerCase() === barcode.toLowerCase()
+        );
+        if (matchedVar) {
+          if (item.item_type === 'weighted') {
+            setWeighedModalItem(item);
+            setWeighedModalVariant(matchedVar);
+            setEditingCartItemIndex(null);
+          } else {
+            addItemToCart(item, matchedVar);
+          }
+          setBarcodeInput('');
+          return;
+        }
+      }
+    }
+
+    // 2. Direct match on main item barcode or exact name
+    const exactMatched = items.find(i => 
       !i.is_deleted && (
         i.item_number.toLowerCase() === barcode.toLowerCase() ||
         i.name.toLowerCase() === barcode.toLowerCase()
       )
     );
 
-    if (matched) {
-      addItemToCart(matched);
+    if (exactMatched) {
+      handleCatalogItemClick(exactMatched);
       setBarcodeInput('');
-    } else {
-      alert(`No active inventory item found matching SKU or barcode: "${barcode}"`);
+      return;
     }
+
+    // 3. Fallback to Smart Typo-Tolerant Search
+    const searchResults = searchItems(items, barcode, 'All');
+    if (searchResults.length > 0) {
+      const topMatch = searchResults[0];
+      handleCatalogItemClick(topMatch);
+      setBarcodeInput('');
+      return;
+    }
+
+    alert(`No inventory item found matching barcode, SKU, or name: "${barcode}"`);
   };
 
   // Hold current cart
@@ -356,79 +543,84 @@ export const POSRegister: React.FC<POSRegisterProps> = ({
     return paymentsList.reduce((acc, p) => acc + p.payment_amount, 0);
   }, [paymentsList]);
 
-  const changeDue = Math.max(0, totalPaid - grandTotal);
-  const remainingBalance = Math.max(0, grandTotal - totalPaid);
+  const remainingBalance = useMemo(() => {
+    return Math.max(0, grandTotal - totalPaid);
+  }, [grandTotal, totalPaid]);
+
+  const changeDue = useMemo(() => {
+    return Math.max(0, totalPaid - grandTotal);
+  }, [totalPaid, grandTotal]);
 
   const handleOpenPayment = () => {
     if (cart.length === 0) return;
-    setPaymentsList([{ payment_type: 'Cash', payment_amount: grandTotal }]);
+    setIsPaymentModalOpen(true);
+    setPaymentsList([]);
     setPaymentType('Cash');
     setTenderAmountInput(grandTotal.toFixed(2));
     setSaleComment('');
     setUpiTxnRef('');
-    setIsPaymentModalOpen(true);
+    setCopiedUpiId(false);
   };
 
   const handleSelectPaymentType = (type: Payment['payment_type']) => {
     setPaymentType(type);
-    if (type === 'UPI / QR Code') {
-      const targetAmt = remainingBalance > 0 ? remainingBalance : grandTotal;
-      setTenderAmountInput(targetAmt.toFixed(2));
+    if (remainingBalance > 0) {
+      setTenderAmountInput(remainingBalance.toFixed(2));
     }
   };
 
   const handleAddSplitPayment = () => {
-    const amt = parseFloat(tenderAmountInput) || 0;
-    if (amt <= 0) return;
-
-    setPaymentsList(prev => [
-      ...prev,
-      {
-        payment_type: paymentType,
-        payment_amount: amt,
-        transaction_ref: paymentType === 'UPI / QR Code' && upiTxnRef.trim() ? upiTxnRef.trim() : undefined,
-      },
-    ]);
-    const newRemaining = Math.max(0, remainingBalance - amt);
-    setTenderAmountInput(newRemaining > 0 ? newRemaining.toFixed(2) : '0.00');
-    if (paymentType === 'UPI / QR Code') {
-      setUpiTxnRef('');
+    const amt = parseFloat(tenderAmountInput);
+    if (isNaN(amt) || amt <= 0) {
+      alert('Please enter a valid tender amount.');
+      return;
     }
-  };
 
-  const handleConfirmUpiFullPayment = () => {
-    const amt = parseFloat(tenderAmountInput) > 0 ? parseFloat(tenderAmountInput) : (remainingBalance > 0 ? remainingBalance : grandTotal);
-    if (amt <= 0) return;
+    const newPayment: Payment = {
+      payment_type: paymentType,
+      payment_amount: amt,
+      transaction_ref: (paymentType === 'UPI / QR Code' && upiTxnRef) 
+        ? upiTxnRef 
+        : (paymentType === 'Customer Credit' ? `Cust-${selectedCustomerId || 'WalkIn'}` : undefined),
+    };
 
-    setPaymentsList(prev => [
-      ...prev,
-      {
-        payment_type: 'UPI / QR Code',
-        payment_amount: amt,
-        transaction_ref: upiTxnRef.trim() || undefined,
-      },
-    ]);
-    const newRemaining = Math.max(0, remainingBalance - amt);
-    setTenderAmountInput(newRemaining > 0 ? newRemaining.toFixed(2) : '0.00');
+    setPaymentsList(prev => [...prev, newPayment]);
+    sound.playBeep();
+
+    const newRemain = Math.max(0, remainingBalance - amt);
+    setTenderAmountInput(newRemain > 0 ? newRemain.toFixed(2) : '0.00');
     setUpiTxnRef('');
   };
 
-  const handleCopyUpiId = () => {
-    const targetId = config.upi_id || 'osposstore@okhdfcbank';
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(targetId);
-      setCopiedUpiId(true);
-      setTimeout(() => setCopiedUpiId(false), 2000);
-    }
+  const handleConfirmUpiFullPayment = () => {
+    const amtToPay = remainingBalance > 0 ? remainingBalance : grandTotal;
+    const newPayment: Payment = {
+      payment_type: 'UPI / QR Code',
+      payment_amount: amtToPay,
+      transaction_ref: upiTxnRef.trim() || `UPI-${Date.now().toString().slice(-6)}`,
+    };
+    setPaymentsList(prev => [...prev, newPayment]);
+    sound.playBeep();
+    setTenderAmountInput('0.00');
   };
 
   const handleRemovePayment = (index: number) => {
+    const removed = paymentsList[index];
     setPaymentsList(prev => prev.filter((_, i) => i !== index));
+    const newRemain = remainingBalance + (removed ? removed.payment_amount : 0);
+    setTenderAmountInput(newRemain.toFixed(2));
+  };
+
+  const handleCopyUpiId = () => {
+    const upi = config.upi_id || 'nexuspos@okhdfcbank';
+    navigator.clipboard.writeText(upi);
+    setCopiedUpiId(true);
+    setTimeout(() => setCopiedUpiId(false), 2000);
   };
 
   const handleCompleteCheckout = () => {
     if (totalPaid < grandTotal - 0.001) {
-      alert('Insufficient payment amount tendered. Please collect the remaining balance.');
+      alert('Tendered amount is less than the grand total due. Please tender remaining balance.');
       return;
     }
 
@@ -436,28 +628,32 @@ export const POSRegister: React.FC<POSRegisterProps> = ({
       customer_id: selectedCustomerId || undefined,
       customer_name: selectedCustomer ? `${selectedCustomer.first_name} ${selectedCustomer.last_name}` : undefined,
       employee_id: currentUser.id,
-      employee_name: `${currentUser.first_name} ${currentUser.last_name}`,
+      employee_name: `${currentUser.first_name} ${currentUser.last_name}`.trim(),
       items: cart,
       subtotal,
-      tax_total: taxTotal,
       discount_total: lineDiscountsTotal,
+      tax_total: taxTotal,
       total: grandTotal,
-      payments: paymentsList,
+      payments: paymentsList.length > 0 ? paymentsList : [{
+        payment_type: paymentType,
+        payment_amount: grandTotal,
+      }],
       change_due: changeDue,
       comment: saleComment || undefined,
     };
 
     const completed = onCompleteSale(salePayload);
-    sound.playSuccess();
     setIsPaymentModalOpen(false);
     setCart([]);
     setSelectedCustomerId('');
     setOrderDiscountPercent(0);
     setLoyaltyDiscountAmount(0);
     setRedeemedPoints(0);
+    sound.playSuccess();
     onShowReceipt(completed);
   };
 
+  // Quick Customer Creation
   const handleCreateCustomer = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCustFirst.trim()) return;
@@ -469,6 +665,8 @@ export const POSRegister: React.FC<POSRegisterProps> = ({
       email: newCustEmail.trim(),
       address_1: '',
       city: '',
+      credit_limit: 500,
+      credit_balance: 0,
     });
 
     setSelectedCustomerId(created.id);
@@ -480,9 +678,9 @@ export const POSRegister: React.FC<POSRegisterProps> = ({
   };
 
   return (
-    <div className="h-[calc(100vh-3.5rem)] flex flex-col lg:flex-row overflow-hidden bg-slate-100 dark:bg-slate-950 transition-colors">
-      {/* Mobile-only switcher tabs for phone screens */}
-      <div className="lg:hidden flex items-center border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0">
+    <div className="flex flex-col lg:flex-row h-[calc(100vh-64px)] overflow-hidden bg-slate-100 dark:bg-slate-950">
+      {/* Mobile Tab Navigation */}
+      <div className="lg:hidden flex border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0">
         <button
           type="button"
           onClick={() => setMobileActiveTab('catalog')}
@@ -493,8 +691,9 @@ export const POSRegister: React.FC<POSRegisterProps> = ({
           }`}
         >
           <Search className="w-3.5 h-3.5" />
-          <span>Items & Search ({filteredItems.length})</span>
+          <span>Catalog ({filteredItems.length})</span>
         </button>
+
         <button
           type="button"
           onClick={() => setMobileActiveTab('cart')}
@@ -509,12 +708,12 @@ export const POSRegister: React.FC<POSRegisterProps> = ({
         </button>
       </div>
 
-      {/* Left Column: Item Catalog & Quick Search (60%) */}
+      {/* Left Column: Item Catalog & Quick Search */}
       <div className={`flex-1 flex flex-col border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden ${
         mobileActiveTab === 'catalog' ? 'flex' : 'hidden lg:flex'
       }`}>
         {/* Top Search & Barcode Bar */}
-        <div className="p-3 bg-slate-900 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row gap-2.5">
+        <div className="p-3 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row gap-2.5">
           {/* Barcode / SKU input */}
           <form onSubmit={handleBarcodeSubmit} className="flex-1 relative flex items-center">
             <Barcode className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute left-3" />
@@ -528,7 +727,7 @@ export const POSRegister: React.FC<POSRegisterProps> = ({
             />
             <button
               type="submit"
-              className="absolute right-1.5 px-2.5 py-1 bg-slate-800 dark:bg-slate-700 text-white rounded-md text-[11px] font-semibold hover:bg-slate-700 dark:hover:bg-slate-600 transition-colors"
+              className="absolute right-1.5 px-2.5 py-1 bg-sky-600 hover:bg-sky-700 dark:bg-sky-600 dark:hover:bg-sky-500 text-white rounded-md text-[11px] font-semibold transition-colors shadow-2xs cursor-pointer"
             >
               Scan
             </button>
@@ -541,7 +740,7 @@ export const POSRegister: React.FC<POSRegisterProps> = ({
               type="text"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search items by name or category..."
+              placeholder="Search items, variants, rashan or category..."
               className="w-full pl-9 pr-8 py-2 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-sky-500 shadow-2xs"
             />
             {searchQuery && (
@@ -556,15 +755,15 @@ export const POSRegister: React.FC<POSRegisterProps> = ({
         </div>
 
         {/* Category Filter Pills */}
-        <div className="px-3 py-2 bg-slate-50/50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800 overflow-x-auto flex gap-1.5 scrollbar-none">
+        <div className="px-3 py-2 bg-white dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800 overflow-x-auto flex gap-1.5 scrollbar-none">
           {categories.map(cat => (
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
               className={`px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
                 selectedCategory === cat
-                  ? 'bg-slate-900 dark:bg-sky-600 text-white shadow-xs'
-                  : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700/80 hover:bg-slate-100 dark:hover:bg-slate-700'
+                  ? 'bg-sky-600 dark:bg-sky-600 text-white shadow-xs'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/80 hover:bg-slate-200 dark:hover:bg-slate-700'
               }`}
             >
               {cat}
@@ -574,60 +773,198 @@ export const POSRegister: React.FC<POSRegisterProps> = ({
 
         {/* Item Grid */}
         <div className="flex-1 p-3 overflow-y-auto bg-slate-100/60 dark:bg-slate-950/40">
-          {filteredItems.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 py-12">
+          {items.length === 0 ? (
+            <div className="h-full min-h-[300px] flex flex-col items-center justify-center text-center p-6 bg-white dark:bg-slate-900 rounded-2xl border border-dashed border-slate-300 dark:border-slate-800 my-auto">
+              <div className="w-14 h-14 rounded-2xl bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 flex items-center justify-center mb-3">
+                <Barcode className="w-7 h-7" />
+              </div>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">Store Catalog is Clean</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mt-1 mb-4">
+                No products are currently registered. Add your store inventory items, rashan loose products, or variants to start ringing up sales.
+              </p>
+              {onNavigateToInventory && (
+                <button
+                  type="button"
+                  onClick={onNavigateToInventory}
+                  className="flex items-center gap-2 px-4 py-2 bg-sky-600 hover:bg-sky-700 active:bg-sky-800 text-white rounded-xl text-xs font-bold shadow-xs transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Go to Inventory & Add Products</span>
+                </button>
+              )}
+            </div>
+          ) : filteredItems.length === 0 ? (
+            <div className="h-full min-h-[250px] flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 py-12 text-center">
               <Search className="w-10 h-10 mb-2 stroke-[1.5] text-slate-300 dark:text-slate-600" />
-              <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">No items found</p>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Try searching with a different SKU or category filter</p>
+              <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">No items matching search</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 max-w-xs">
+                Try searching with a different SKU, name, or change the category filter
+              </p>
+              {(searchQuery || selectedCategory !== 'All') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setSelectedCategory('All');
+                  }}
+                  className="mt-3 text-xs text-sky-600 dark:text-sky-400 font-semibold hover:underline"
+                >
+                  Clear all filters
+                </button>
+              )}
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-2.5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3">
               {filteredItems.map(item => {
                 const isOutOfStock = item.quantity <= 0;
                 const isLowStock = item.quantity > 0 && item.quantity <= item.reorder_level;
+                const isWeighted = item.item_type === 'weighted';
+                const hasVariants = item.variants && item.variants.length > 0;
 
                 return (
-                  <button
+                  <div
                     key={item.id}
-                    onClick={() => addItemToCart(item)}
-                    className="group relative flex flex-col justify-between p-3 bg-white dark:bg-slate-900 hover:bg-sky-50/40 dark:hover:bg-slate-800/80 border border-slate-200 dark:border-slate-800 hover:border-sky-300 dark:hover:border-sky-700 rounded-xl text-left transition-all shadow-xs hover:shadow-sm active:scale-[0.99]"
+                    className="group relative flex flex-col justify-between p-3 bg-white dark:bg-slate-900 hover:bg-slate-50/80 dark:hover:bg-slate-850 border border-slate-200 dark:border-slate-800 hover:border-sky-300 dark:hover:border-sky-700 rounded-xl text-left transition-all shadow-xs hover:shadow-sm min-h-[175px]"
                   >
+                    {/* Header: SKU & Stock Status */}
                     <div>
-                      <div className="flex items-start justify-between gap-1 mb-1">
-                        <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 group-hover:text-sky-600 dark:group-hover:text-sky-400 font-medium">
+                      <div className="flex items-start justify-between gap-1 mb-1.5">
+                        <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 font-semibold truncate max-w-[90px]">
                           {item.item_number}
                         </span>
                         {isOutOfStock ? (
-                          <span className="px-1.5 py-0.5 bg-rose-100 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300 text-[9px] font-bold rounded-md border border-rose-200 dark:border-rose-900">
+                          <span className="px-1.5 py-0.5 bg-rose-100 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300 text-[9px] font-bold rounded border border-rose-200 dark:border-rose-900 shrink-0">
                             Out of Stock
                           </span>
                         ) : isLowStock ? (
-                          <span className="px-1.5 py-0.5 bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 text-[9px] font-bold rounded-md border border-amber-200 dark:border-amber-900">
+                          <span className="px-1.5 py-0.5 bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 text-[9px] font-bold rounded border border-amber-200 dark:border-amber-900 shrink-0">
                             {item.quantity} left
                           </span>
                         ) : (
-                          <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">
-                            {item.quantity} in stock
+                          <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium shrink-0">
+                            {item.quantity} {item.unit_name || 'in stock'}
                           </span>
                         )}
                       </div>
-                      <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100 line-clamp-2 leading-snug">
+
+                      {/* Product Name */}
+                      <h4 
+                        onClick={() => handleCatalogItemClick(item)}
+                        className="text-xs font-bold text-slate-900 dark:text-slate-100 line-clamp-1 leading-snug cursor-pointer hover:text-sky-600 dark:hover:text-sky-400 transition-colors"
+                        title={item.name}
+                      >
                         {item.name}
                       </h4>
-                      <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate mt-0.5 font-medium">
-                        {item.category}
-                      </p>
+
+                      {/* Category & Tags */}
+                      <div className="flex items-center gap-1.5 mt-0.5 mb-2">
+                        {isWeighted && (
+                          <span className="inline-flex items-center gap-0.5 px-1 py-0.2 rounded bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 text-[9px] font-bold border border-amber-200 dark:border-amber-900 shrink-0">
+                            <Scale className="w-2.5 h-2.5" />
+                            <span>Loose</span>
+                          </span>
+                        )}
+                        <span className="text-[10px] text-slate-400 dark:text-slate-500 truncate">
+                          {item.category}
+                        </span>
+                      </div>
                     </div>
 
-                    <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                      <span className="text-xs font-black text-sky-700 dark:text-sky-400 font-mono">
-                        {config.currency_symbol}{item.unit_price.toFixed(2)}
-                      </span>
-                      <span className="text-[10px] px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 group-hover:bg-sky-600 group-hover:text-white dark:group-hover:bg-sky-500 rounded-md transition-colors font-semibold">
-                        + Add
-                      </span>
+                    {/* Middle Section: Variants Selector or Price Details */}
+                    <div className="my-1">
+                      {hasVariants ? (
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between text-[10px] font-semibold text-purple-700 dark:text-purple-300">
+                            <span className="flex items-center gap-1">
+                              <Layers className="w-3 h-3" />
+                              <span>Options ({item.variants!.length})</span>
+                            </span>
+                            <span className="text-[9px] text-slate-400 dark:text-slate-500">
+                              {item.variants!.length > 3 ? 'Scroll for more' : 'Tap to add'}
+                            </span>
+                          </div>
+
+                          {/* Scrollable Variant Pills List (Max 3 visible without scrolling) */}
+                          <div className="flex flex-nowrap gap-1.5 overflow-x-auto pb-1 pt-0.5 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700">
+                            {item.variants!.map(v => (
+                              <button
+                                key={v.id}
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleCatalogItemClick(item, v);
+                                }}
+                                className="shrink-0 flex flex-col items-start px-2 py-1 bg-purple-50/80 hover:bg-purple-600 dark:bg-purple-950/40 dark:hover:bg-purple-600 text-purple-900 hover:text-white dark:text-purple-200 dark:hover:text-white border border-purple-200/80 dark:border-purple-800/80 hover:border-purple-600 rounded-lg text-left transition-all group/var cursor-pointer shadow-2xs active:scale-95"
+                                title={`Add ${item.name} (${v.name}) - ${config.currency_symbol}${v.unit_price.toFixed(2)}`}
+                              >
+                                <span className="text-[10px] font-bold leading-tight truncate max-w-[85px]">
+                                  {v.name}
+                                </span>
+                                <span className="text-[10px] font-mono font-extrabold text-purple-700 group-hover/var:text-purple-100 dark:text-purple-300 dark:group-hover/var:text-purple-100">
+                                  {config.currency_symbol}{v.unit_price.toFixed(2)}
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <div 
+                          onClick={() => handleCatalogItemClick(item)}
+                          className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 flex items-center justify-between cursor-pointer hover:bg-sky-50 dark:hover:bg-sky-950/40 transition-colors"
+                        >
+                          <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                            Standard
+                          </span>
+                          <span className="text-xs font-black text-sky-700 dark:text-sky-400 font-mono">
+                            {config.currency_symbol}{item.unit_price.toFixed(2)}
+                            {isWeighted && <span className="text-[10px] font-normal text-slate-500"> /{item.unit_name || 'kg'}</span>}
+                          </span>
+                        </div>
+                      )}
                     </div>
-                  </button>
+
+                    {/* Bottom Action Footer */}
+                    <div className="pt-2 mt-1 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                      <div className="text-[11px] font-mono font-bold text-slate-700 dark:text-slate-300">
+                        {hasVariants ? (
+                          <span className="text-[10px] text-slate-500">
+                            From <span className="font-bold text-slate-900 dark:text-white">{config.currency_symbol}{Math.min(...item.variants!.map(v => v.unit_price)).toFixed(2)}</span>
+                          </span>
+                        ) : (
+                          <span className="text-xs text-sky-700 dark:text-sky-400">
+                            {config.currency_symbol}{item.unit_price.toFixed(2)}
+                          </span>
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleCatalogItemClick(item)}
+                        className={`text-[10px] px-2.5 py-1 rounded-lg transition-colors font-bold flex items-center gap-1 shadow-2xs ${
+                          hasVariants
+                            ? 'bg-purple-100 hover:bg-purple-200 dark:bg-purple-900/60 dark:hover:bg-purple-800/80 text-purple-800 dark:text-purple-200'
+                            : 'bg-sky-600 hover:bg-sky-700 text-white'
+                        }`}
+                      >
+                        {isWeighted ? (
+                          <>
+                            <Scale className="w-3 h-3" />
+                            <span>Weigh</span>
+                          </>
+                        ) : hasVariants ? (
+                          <>
+                            <Plus className="w-3 h-3" />
+                            <span>Default</span>
+                          </>
+                        ) : (
+                          <>
+                            <Plus className="w-3 h-3" />
+                            <span>Add</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
                 );
               })}
             </div>
@@ -635,14 +972,14 @@ export const POSRegister: React.FC<POSRegisterProps> = ({
         </div>
       </div>
 
-      {/* Right Column: Register Terminal & Cart (40%) */}
+      {/* Right Column: Register Terminal & Cart */}
       <div className={`w-full lg:w-[420px] xl:w-[480px] flex-col bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 h-full overflow-y-auto ${
         mobileActiveTab === 'cart' ? 'flex flex-1' : 'hidden lg:flex'
       }`}>
         {/* Customer Selection Bar */}
-        <div className="p-3 bg-slate-900 dark:bg-slate-950 text-white flex items-center justify-between gap-2 border-b border-slate-800">
+        <div className="p-3 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 flex items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-800 shrink-0">
           <div className="flex-1 flex items-center gap-2">
-            <User className="w-4 h-4 text-sky-400 shrink-0" />
+            <User className="w-4 h-4 text-sky-600 dark:text-sky-400 shrink-0" />
             <select
               value={selectedCustomerId}
               onChange={e => {
@@ -650,12 +987,12 @@ export const POSRegister: React.FC<POSRegisterProps> = ({
                 setRedeemedPoints(0);
                 setLoyaltyDiscountAmount(0);
               }}
-              className="bg-slate-800 dark:bg-slate-900 text-slate-200 text-xs border border-slate-700 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-sky-500 w-full truncate font-medium"
+              className="bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-200 text-xs border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-sky-500 w-full truncate font-medium shadow-2xs"
             >
               <option value="">Walk-in Customer (Guest)</option>
               {customers.map(c => (
                 <option key={c.id} value={c.id}>
-                  {c.first_name} {c.last_name} ({c.points} pts)
+                  {c.first_name} {c.last_name}{config.enable_loyalty !== false ? ` (${c.points} pts)` : ''}
                 </option>
               ))}
             </select>
@@ -663,23 +1000,30 @@ export const POSRegister: React.FC<POSRegisterProps> = ({
 
           <button
             onClick={() => setIsNewCustModalOpen(true)}
-            className="p-1.5 bg-slate-800 hover:bg-slate-700 text-sky-400 rounded-lg border border-slate-700 text-xs transition-colors shrink-0"
+            className="p-1.5 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-sky-600 dark:text-sky-400 rounded-lg border border-slate-300 dark:border-slate-700 text-xs transition-colors shrink-0 shadow-2xs"
             title="Add New Customer"
           >
             <UserPlus className="w-3.5 h-3.5" />
           </button>
         </div>
 
-        {/* Loyalty Points Banner */}
+        {/* Customer Banner (Loyalty or Clean Customer Bar) */}
         {selectedCustomer && (
-          <div className="bg-sky-50 dark:bg-sky-950/60 px-3 py-2 border-b border-sky-100 dark:border-sky-900/60 flex items-center justify-between text-xs text-sky-900 dark:text-sky-200">
-            <div className="flex items-center gap-1.5">
-              <Gift className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
-              <span>Loyalty: <b className="font-mono">{selectedCustomer.points} pts</b></span>
-            </div>
+          <div className="bg-sky-50 dark:bg-sky-950/60 px-3 py-2 border-b border-sky-100 dark:border-sky-900/60 flex items-center justify-between text-xs text-sky-900 dark:text-sky-200 shrink-0">
+            {config.enable_loyalty !== false ? (
+              <div className="flex items-center gap-1.5">
+                <Gift className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
+                <span>Loyalty: <b className="font-mono">{selectedCustomer.points} pts</b></span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5">
+                <User className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
+                <span>Customer: <b className="font-semibold">{selectedCustomer.first_name} {selectedCustomer.last_name}</b></span>
+              </div>
+            )}
 
             <div className="flex items-center gap-2">
-              {redeemedPoints > 0 ? (
+              {config.enable_loyalty !== false && redeemedPoints > 0 ? (
                 <div className="flex items-center gap-1 text-[11px] text-emerald-700 dark:text-emerald-300 font-semibold">
                   <span>Applied -{config.currency_symbol}{loyaltyDiscountAmount.toFixed(2)}</span>
                   <button
@@ -689,12 +1033,12 @@ export const POSRegister: React.FC<POSRegisterProps> = ({
                     Remove
                   </button>
                 </div>
-              ) : selectedCustomer.points >= 50 ? (
+              ) : config.enable_loyalty !== false && selectedCustomer.points >= 50 ? (
                 <button
                   onClick={handleRedeemCustomerPoints}
-                  className="px-2 py-0.5 bg-sky-600 hover:bg-sky-700 text-white rounded text-[11px] font-bold transition-colors"
+                  className="px-2 py-0.5 bg-sky-600 hover:bg-sky-700 text-white rounded text-[11px] font-bold transition-colors cursor-pointer"
                 >
-                  Redeem (50 pts = $2.50)
+                  Redeem (50 pts = {config.currency_symbol}2.50)
                 </button>
               ) : null}
 
@@ -703,7 +1047,7 @@ export const POSRegister: React.FC<POSRegisterProps> = ({
                   setSelectedCustomerId('');
                   handleClearPointsDiscount();
                 }}
-                className="text-slate-400 hover:text-rose-600 text-xs font-semibold"
+                className="text-slate-400 hover:text-rose-600 text-xs font-semibold cursor-pointer"
               >
                 Clear
               </button>
@@ -722,89 +1066,135 @@ export const POSRegister: React.FC<POSRegisterProps> = ({
               </p>
             </div>
           ) : (
-            cart.map(item => (
-              <div
-                key={item.item_id}
-                className="p-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xs space-y-2 transition-colors"
-              >
-                {/* Line 1: Title & Total */}
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <h5 className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">{item.name}</h5>
-                    <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500">{item.item_number}</span>
-                  </div>
-                  <span className="text-xs font-black text-slate-900 dark:text-slate-100 font-mono">
-                    {config.currency_symbol}{item.total.toFixed(2)}
-                  </span>
-                </div>
+            cart.map((item, idx) => {
+              const isWeighted = item.item_type === 'weighted';
+              const weightDisplay = isWeighted && item.weight_in_grams 
+                ? (item.weight_in_grams >= 1000 ? `${(item.weight_in_grams/1000).toFixed(3)} kg` : `${item.weight_in_grams.toFixed(0)} g`)
+                : null;
 
-                {/* Line 2: Quantity Controls + Price / Disc editing */}
-                <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-100 dark:border-slate-700/60">
-                  {/* Quantity Stepper */}
-                  <div className="flex items-center border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-900">
+              return (
+                <div
+                  key={item.item_id || idx}
+                  className="p-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xs space-y-2 transition-colors"
+                >
+                  {/* Line 1: Title & Total */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <h5 className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">{item.name}</h5>
+                        {item.variant_name && (
+                          <span className="px-1.5 py-0.2 text-[9px] font-bold bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 rounded border border-purple-200 dark:border-purple-800 shrink-0">
+                            {item.variant_name}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Weighed Item details */}
+                      {isWeighted && (
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <button
+                            type="button"
+                            onClick={() => handleEditWeighedCartItem(item, idx)}
+                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 text-[10px] font-bold border border-amber-200 dark:border-amber-800 hover:bg-amber-100"
+                          >
+                            <Scale className="w-3 h-3" />
+                            <span>{weightDisplay} @ {config.currency_symbol}{item.unit_price.toFixed(2)}/kg</span>
+                            <Edit2 className="w-2.5 h-2.5 ml-0.5 opacity-60" />
+                          </button>
+                          {item.target_price_requested && (
+                            <span className="text-[10px] text-slate-500 font-mono">
+                              (Target: {config.currency_symbol}{item.target_price_requested.toFixed(2)})
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500">{item.item_number}</span>
+                    </div>
+                    <span className="text-xs font-black text-slate-900 dark:text-slate-100 font-mono">
+                      {config.currency_symbol}{item.total.toFixed(2)}
+                    </span>
+                  </div>
+
+                  {/* Line 2: Quantity Controls + Price / Disc editing */}
+                  <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-100 dark:border-slate-700/60">
+                    {/* Quantity Stepper (or Weight Adjust for weighed items) */}
+                    {isWeighted ? (
+                      <button
+                        type="button"
+                        onClick={() => handleEditWeighedCartItem(item, idx)}
+                        className="px-2.5 py-1 text-[11px] font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-800 dark:text-slate-200 rounded-lg flex items-center gap-1"
+                      >
+                        <Scale className="w-3 h-3 text-amber-600" />
+                        <span>Adjust Weight ({weightDisplay})</span>
+                      </button>
+                    ) : (
+                      <div className="flex items-center border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-900">
+                        <button
+                          onClick={() => updateQuantity(item.item_id, item.quantity - 1)}
+                          className="p-1 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800 rounded-l transition-colors"
+                        >
+                          <Minus className="w-3 h-3" />
+                        </button>
+                        <input
+                          type="number"
+                          min="1"
+                          value={item.quantity}
+                          onChange={e => updateQuantity(item.item_id, parseInt(e.target.value) || 1)}
+                          className="w-10 text-center text-xs font-bold bg-transparent text-slate-900 dark:text-slate-100 focus:outline-none font-mono"
+                        />
+                        <button
+                          onClick={() => updateQuantity(item.item_id, item.quantity + 1)}
+                          className="p-1 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800 rounded-r transition-colors"
+                        >
+                          <Plus className="w-3 h-3" />
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Price override */}
+                    <div className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400">
+                      <span>@ {config.currency_symbol}</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={item.unit_price}
+                        onChange={e => updatePrice(item.item_id, parseFloat(e.target.value) || 0)}
+                        className="w-14 px-1 py-0.5 border border-slate-200 dark:border-slate-700 rounded text-right text-xs bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-800 focus:outline-none font-mono font-medium"
+                      />
+                    </div>
+
+                    {/* Discount % */}
+                    <div className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400">
+                      <Percent className="w-3 h-3 text-slate-400 dark:text-slate-500" />
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={item.discount_percent || ''}
+                        placeholder="0"
+                        onChange={e => updateDiscount(item.item_id, parseFloat(e.target.value) || 0)}
+                        className="w-10 px-1 py-0.5 border border-slate-200 dark:border-slate-700 rounded text-center text-xs bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-none font-mono"
+                      />
+                    </div>
+
+                    {/* Remove line */}
                     <button
-                      onClick={() => updateQuantity(item.item_id, item.quantity - 1)}
-                      className="p-1 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800 rounded-l transition-colors"
+                      onClick={() => removeFromCart(item.item_id)}
+                      className="p-1 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors"
+                      title="Remove item"
                     >
-                      <Minus className="w-3 h-3" />
-                    </button>
-                    <input
-                      type="number"
-                      min="1"
-                      value={item.quantity}
-                      onChange={e => updateQuantity(item.item_id, parseInt(e.target.value) || 1)}
-                      className="w-10 text-center text-xs font-bold bg-transparent text-slate-900 dark:text-slate-100 focus:outline-none font-mono"
-                    />
-                    <button
-                      onClick={() => updateQuantity(item.item_id, item.quantity + 1)}
-                      className="p-1 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800 rounded-r transition-colors"
-                    >
-                      <Plus className="w-3 h-3" />
+                      <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
-
-                  {/* Price override */}
-                  <div className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400">
-                    <span>@ {config.currency_symbol}</span>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={item.unit_price}
-                      onChange={e => updatePrice(item.item_id, parseFloat(e.target.value) || 0)}
-                      className="w-14 px-1 py-0.5 border border-slate-200 dark:border-slate-700 rounded text-right text-xs bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-800 focus:outline-none font-mono font-medium"
-                    />
-                  </div>
-
-                  {/* Discount % */}
-                  <div className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400">
-                    <Percent className="w-3 h-3 text-slate-400 dark:text-slate-500" />
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      value={item.discount_percent || ''}
-                      placeholder="0"
-                      onChange={e => updateDiscount(item.item_id, parseFloat(e.target.value) || 0)}
-                      className="w-10 px-1 py-0.5 border border-slate-200 dark:border-slate-700 rounded text-center text-xs bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-none font-mono"
-                    />
-                  </div>
-
-                  {/* Remove line */}
-                  <button
-                    onClick={() => removeFromCart(item.item_id)}
-                    className="p-1 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors"
-                    title="Remove item"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
 
         {/* Bottom Totals & Register Controls */}
-        <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 shadow-md space-y-3">
+        <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 shadow-md space-y-3 shrink-0">
           {/* Subtotals Breakdown */}
           <div className="space-y-1 text-xs text-slate-600 dark:text-slate-400">
             <div className="flex justify-between">
@@ -841,9 +1231,9 @@ export const POSRegister: React.FC<POSRegisterProps> = ({
           {/* Register Action Buttons */}
           <div className="grid grid-cols-3 gap-2">
             <button
-              onClick={clearCart}
+              onClick={handleCancelClick}
               disabled={cart.length === 0}
-              className="py-2.5 px-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-40 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1"
+              className="py-2.5 px-2 bg-slate-100 dark:bg-slate-800 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40 dark:hover:text-rose-400 disabled:opacity-40 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1 cursor-pointer"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               <span>Cancel</span>
@@ -879,6 +1269,41 @@ export const POSRegister: React.FC<POSRegisterProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Weighed Item / Rashan Loose Product Modal */}
+      {weighedModalItem && (
+        <WeighedItemModal
+          item={weighedModalItem}
+          selectedVariant={weighedModalVariant}
+          config={config}
+          onConfirm={handleConfirmWeighedItem}
+          onClose={() => {
+            setWeighedModalItem(null);
+            setWeighedModalVariant(undefined);
+            setEditingCartItemIndex(null);
+          }}
+          initialGrams={
+            editingCartItemIndex !== null && cart[editingCartItemIndex]?.weight_in_grams
+              ? cart[editingCartItemIndex].weight_in_grams
+              : undefined
+          }
+          initialPriceRequested={
+            editingCartItemIndex !== null && cart[editingCartItemIndex]?.target_price_requested
+              ? cart[editingCartItemIndex].target_price_requested
+              : undefined
+          }
+        />
+      )}
+
+      {/* Product Variant Select Modal */}
+      {variantModalItem && (
+        <VariantSelectModal
+          item={variantModalItem}
+          config={config}
+          onSelectVariant={handleSelectVariant}
+          onClose={() => setVariantModalItem(null)}
+        />
+      )}
 
       {/* Payment & Split Tender Modal */}
       {isPaymentModalOpen && (
@@ -1420,6 +1845,40 @@ export const POSRegister: React.FC<POSRegisterProps> = ({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* Clear / Cancel Cart Confirmation Modal */}
+      {isCancelConfirmOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-xs p-4 animate-in fade-in duration-100">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl max-w-sm w-full p-5 space-y-4 text-center">
+            <div className="w-12 h-12 rounded-full bg-rose-100 dark:bg-rose-950/80 text-rose-600 dark:text-rose-400 mx-auto flex items-center justify-center">
+              <Trash2 className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                Clear Current Transaction?
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
+                This will remove all {cart.length} item{cart.length > 1 ? 's' : ''} from the register cart and reset discounts.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-2.5 pt-1">
+              <button
+                type="button"
+                onClick={() => setIsCancelConfirmOpen(false)}
+                className="px-4 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+              >
+                Keep Cart
+              </button>
+              <button
+                type="button"
+                onClick={confirmClearCart}
+                className="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-colors shadow-sm cursor-pointer active:scale-95"
+              >
+                Yes, Clear All
+              </button>
+            </div>
           </div>
         </div>
       )}

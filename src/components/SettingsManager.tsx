@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sliders, Save, Download, Upload, RotateCcw, CheckCircle, Volume2, Store, Palette, Moon, Sun, QrCode, Smartphone, Copy, Check, Cloud, ArrowRight } from 'lucide-react';
+import { Sliders, Save, Download, Upload, RotateCcw, CheckCircle, Volume2, Store, Palette, Moon, Sun, QrCode, Smartphone, Copy, Check, Cloud, ArrowRight, Gift, Award, Sparkles, CheckCheck } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { StoreConfig } from '../types/pos';
 import { storage } from '../services/storage';
@@ -58,10 +58,10 @@ export const SettingsManager: React.FC<SettingsManagerProps> = ({
     reader.readAsText(file);
   };
 
-  const handleResetDemoData = () => {
-    if (window.confirm('Are you sure you want to reset all store data back to demo defaults? This will erase current sales and customer updates.')) {
-      storage.resetDemoData();
-      alert('Data reset to defaults.');
+  const handleClearStoreData = () => {
+    if (window.confirm('Are you sure you want to erase all products, customers, sales records, and inventory data to start with a clean store?')) {
+      storage.clearAllStoreData();
+      alert('All products, customers, and transactions cleared.');
       onReloadAllData();
     }
   };
@@ -256,6 +256,106 @@ export const SettingsManager: React.FC<SettingsManagerProps> = ({
                 className="w-full px-3 py-1.5 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-mono focus:ring-1 focus:ring-sky-500 focus:outline-none"
               />
             </div>
+          </div>
+        </div>
+
+        {/* Loyalty & Customer Rewards Program */}
+        <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider flex items-center gap-2">
+              <Gift className="w-4 h-4 text-amber-500" />
+              <span>Customer Loyalty & Rewards Program</span>
+            </h3>
+            <span className={`px-2 py-0.5 text-[10px] font-bold rounded-md border ${
+              formData.enable_loyalty !== false
+                ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-700'
+            }`}>
+              {formData.enable_loyalty !== false ? 'Enabled' : 'Disabled'}
+            </span>
+          </div>
+
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Control whether customer point accrual and reward redemption are active during checkout transactions.
+          </p>
+
+          <div className="space-y-4 pt-1">
+            {/* Master Toggle */}
+            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <label className="flex items-start sm:items-center gap-3 cursor-pointer text-xs">
+                <input
+                  type="checkbox"
+                  checked={formData.enable_loyalty !== false}
+                  onChange={e => setFormData({ ...formData, enable_loyalty: e.target.checked })}
+                  className="rounded border-slate-300 dark:border-slate-700 text-sky-600 focus:ring-sky-500 w-4 h-4 mt-0.5 sm:mt-0"
+                />
+                <div>
+                  <div className="font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                    <span>Enable Loyalty Rewards System</span>
+                    {formData.enable_loyalty !== false && (
+                      <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                    )}
+                  </div>
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    Allow registered customers to accumulate points on purchases and redeem discounts
+                  </div>
+                </div>
+              </label>
+
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, enable_loyalty: !(formData.enable_loyalty !== false) })}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                  formData.enable_loyalty !== false
+                    ? 'bg-rose-50 dark:bg-rose-950/50 hover:bg-rose-100 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
+                    : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs'
+                }`}
+              >
+                {formData.enable_loyalty !== false ? 'Disable Loyalty' : 'Enable Loyalty'}
+              </button>
+            </div>
+
+            {/* Additional Loyalty Settings if Enabled */}
+            {formData.enable_loyalty !== false ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 animate-in fade-in duration-150">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Point Earning Ratio (Points per {formData.currency_symbol}1 spent)
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={formData.loyalty_points_ratio || 1}
+                    onChange={e => setFormData({ ...formData, loyalty_points_ratio: Math.max(1, parseInt(e.target.value) || 1) })}
+                    className="w-full px-3 py-1.5 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-mono focus:ring-1 focus:ring-sky-500 focus:outline-none"
+                  />
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 block">
+                    Default is 1 point per {formData.currency_symbol}1 total order value
+                  </span>
+                </div>
+
+                <div className="p-3 bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-900/40 rounded-xl space-y-1">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-amber-900 dark:text-amber-300">
+                    <Award className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                    <span>POS Register Behavior</span>
+                  </div>
+                  <p className="text-[11px] text-amber-800/90 dark:text-amber-300/80 leading-relaxed">
+                    When attached to a sale, customer points display in the cart header. At 50+ points, a 1-click &quot;Redeem 50 pts ({formData.currency_symbol}2.50)&quot; button is available.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="p-3 bg-slate-100 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-750 text-xs text-slate-600 dark:text-slate-400">
+                <div className="flex items-center gap-2 font-semibold text-slate-800 dark:text-slate-200">
+                  <CheckCheck className="w-4 h-4 text-slate-500" />
+                  <span>Loyalty is currently turned off</span>
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                  Points will not be credited or prompted at checkout, and loyalty points banners will be hidden in the register cart for faster streamlined billing.
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -490,11 +590,11 @@ export const SettingsManager: React.FC<SettingsManagerProps> = ({
 
           <button
             type="button"
-            onClick={handleResetDemoData}
+            onClick={handleClearStoreData}
             className="flex items-center gap-1.5 px-4 py-2 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-950/70 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 rounded-lg text-xs font-semibold transition-colors ml-auto"
           >
             <RotateCcw className="w-3.5 h-3.5" />
-            <span>Reset Demo Store Data</span>
+            <span>Clear Products & Customers</span>
           </button>
         </div>
       </div>

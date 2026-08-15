@@ -95,7 +95,7 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="bg-slate-900 dark:bg-slate-950 border-b border-slate-800 text-white sticky top-0 z-30 shadow-xs transition-colors">
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 flex items-center justify-between h-14 gap-2">
+      <div className="w-full max-w-[1600px] mx-auto px-3 sm:px-6 flex items-center justify-between h-14 gap-2 lg:gap-4">
         {/* Zone 1: Brand Wordmark (Single text element) & Mobile Hamburger */}
         <div className="flex items-center gap-2 shrink-0">
           <button
@@ -113,14 +113,15 @@ export const Header: React.FC<HeaderProps> = ({
           </span>
         </div>
 
-        {/* Zone 2: Navigation Links for Tablet / Desktop (Single line, <= 5 direct items + More dropdown) */}
-        <nav className="hidden md:flex items-center space-x-1 sm:space-x-1.5 overflow-x-auto">
+        {/* Zone 2: Navigation Links for Tablet / Desktop (Clean, responsive, non-clipped layout) */}
+        <nav className="hidden md:flex items-center space-x-1 lg:space-x-1.5 shrink-0">
+          {/* Primary POS Tabs */}
           <button
             onClick={() => onSelectTab('register')}
-            className={`flex items-center gap-1.5 px-2.5 lg:px-3 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
+            className={`flex items-center gap-1.5 px-2.5 xl:px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
               currentTab === 'register'
-                ? 'bg-sky-600 text-white shadow-xs'
-                : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                ? 'bg-sky-600 text-white shadow-sm ring-1 ring-sky-400/50'
+                : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
             }`}
           >
             <ShoppingCart className="w-3.5 h-3.5" />
@@ -129,10 +130,10 @@ export const Header: React.FC<HeaderProps> = ({
 
           <button
             onClick={() => onSelectTab('inventory')}
-            className={`flex items-center gap-1.5 px-2.5 lg:px-3 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
+            className={`flex items-center gap-1.5 px-2.5 xl:px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
               currentTab === 'inventory'
-                ? 'bg-sky-600 text-white shadow-xs'
-                : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                ? 'bg-sky-600 text-white shadow-sm ring-1 ring-sky-400/50'
+                : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
             }`}
           >
             <Package className="w-3.5 h-3.5" />
@@ -141,10 +142,10 @@ export const Header: React.FC<HeaderProps> = ({
 
           <button
             onClick={() => onSelectTab('receivings')}
-            className={`flex items-center gap-1.5 px-2.5 lg:px-3 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
+            className={`flex items-center gap-1.5 px-2.5 xl:px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
               currentTab === 'receivings'
-                ? 'bg-sky-600 text-white shadow-xs'
-                : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                ? 'bg-sky-600 text-white shadow-sm ring-1 ring-sky-400/50'
+                : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
             }`}
           >
             <Truck className="w-3.5 h-3.5" />
@@ -153,91 +154,181 @@ export const Header: React.FC<HeaderProps> = ({
 
           <button
             onClick={() => onSelectTab('customers')}
-            className={`flex items-center gap-1.5 px-2.5 lg:px-3 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
+            className={`flex items-center gap-1.5 px-2.5 xl:px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
               currentTab === 'customers'
-                ? 'bg-sky-600 text-white shadow-xs'
-                : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                ? 'bg-sky-600 text-white shadow-sm ring-1 ring-sky-400/50'
+                : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
             }`}
           >
             <Users className="w-3.5 h-3.5" />
             <span>Customers</span>
           </button>
 
+          {/* On wider desktop screens (xl: 1280px+), show Suppliers directly */}
+          <button
+            onClick={() => onSelectTab('suppliers')}
+            className={`hidden xl:flex items-center gap-1.5 px-2.5 xl:px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+              currentTab === 'suppliers'
+                ? 'bg-sky-600 text-white shadow-sm ring-1 ring-sky-400/50'
+                : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+            }`}
+          >
+            <Building2 className="w-3.5 h-3.5" />
+            <span>Suppliers</span>
+          </button>
+
           <button
             onClick={() => onSelectTab('reports')}
-            className={`flex items-center gap-1.5 px-2.5 lg:px-3 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
+            className={`flex items-center gap-1.5 px-2.5 xl:px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
               currentTab === 'reports'
-                ? 'bg-sky-600 text-white shadow-xs'
-                : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                ? 'bg-sky-600 text-white shadow-sm ring-1 ring-sky-400/50'
+                : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
             }`}
           >
             <BarChart3 className="w-3.5 h-3.5" />
             <span>Reports</span>
           </button>
 
-          {/* More Menu */}
+          {/* On 2xl screens, show Expenses & Cashups directly */}
+          <button
+            onClick={() => onSelectTab('expenses')}
+            className={`hidden 2xl:flex items-center gap-1.5 px-2.5 xl:px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+              currentTab === 'expenses'
+                ? 'bg-sky-600 text-white shadow-sm ring-1 ring-sky-400/50'
+                : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+            }`}
+          >
+            <ReceiptText className="w-3.5 h-3.5" />
+            <span>Expenses</span>
+          </button>
+
+          <button
+            onClick={() => onSelectTab('cashups')}
+            className={`hidden 2xl:flex items-center gap-1.5 px-2.5 xl:px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+              currentTab === 'cashups'
+                ? 'bg-sky-600 text-white shadow-sm ring-1 ring-sky-400/50'
+                : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+            }`}
+          >
+            <DollarSign className="w-3.5 h-3.5" />
+            <span>Cashups</span>
+          </button>
+
+          {/* More / Operations Dropdown (Visible on PC, unclipped, with active state indicator) */}
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setShowMoreMenu(!showMoreMenu)}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
+              className={`flex items-center gap-1.5 px-2.5 lg:px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
                 isMoreActive
-                  ? 'bg-slate-800 text-sky-400 border border-slate-700'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                  ? 'bg-sky-950 text-sky-300 border border-sky-600/70 shadow-sm'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
               }`}
+              title="Additional Management & Administration Tabs"
             >
-              <MoreHorizontal className="w-3.5 h-3.5" />
-              <span>More</span>
+              {currentTab === 'suppliers' && <Building2 className="w-3.5 h-3.5 xl:hidden text-sky-400" />}
+              {currentTab === 'expenses' && <ReceiptText className="w-3.5 h-3.5 2xl:hidden text-sky-400" />}
+              {currentTab === 'cashups' && <DollarSign className="w-3.5 h-3.5 2xl:hidden text-sky-400" />}
+              {currentTab === 'employees' && <ShieldCheck className="w-3.5 h-3.5 text-purple-400" />}
+              {currentTab === 'settings' && <Sliders className="w-3.5 h-3.5 text-amber-400" />}
+              {!isMoreActive && <MoreHorizontal className="w-3.5 h-3.5" />}
+
+              <span>
+                {currentTab === 'suppliers' ? 'Suppliers' :
+                 currentTab === 'expenses' ? 'Expenses' :
+                 currentTab === 'cashups' ? 'Cashups' :
+                 currentTab === 'employees' ? 'Staff & Roles' :
+                 currentTab === 'settings' ? 'Settings' : 'More'}
+              </span>
+
+              <span className={`text-[10px] transform transition-transform ${showMoreMenu ? 'rotate-180' : ''}`}>▾</span>
             </button>
 
             {showMoreMenu && (
-              <div className="absolute right-0 mt-2 w-52 bg-slate-900 border border-slate-750 rounded-xl shadow-2xl py-1.5 z-50 text-slate-200 divide-y divide-slate-800 animate-in fade-in zoom-in-95 duration-100">
+              <div className="absolute right-0 mt-2 w-56 bg-slate-900/95 border border-slate-700 rounded-xl shadow-2xl py-1.5 z-50 text-slate-200 divide-y divide-slate-800 backdrop-blur-md animate-in fade-in zoom-in-95 duration-100">
                 <div className="py-1">
+                  <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    Operations
+                  </div>
+                  
                   <button
                     onClick={() => { onSelectTab('suppliers'); setShowMoreMenu(false); }}
-                    className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-slate-800 transition-colors ${
-                      currentTab === 'suppliers' ? 'text-sky-400 font-semibold bg-slate-800/50' : ''
+                    className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-slate-800 transition-colors ${
+                      currentTab === 'suppliers' ? 'text-sky-400 font-bold bg-slate-800/60' : ''
                     }`}
                   >
-                    <Building2 className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Suppliers</span>
+                    <div className="flex items-center gap-2">
+                      <Building2 className="w-4 h-4 text-slate-400" />
+                      <span>Suppliers</span>
+                    </div>
                   </button>
+
                   <button
                     onClick={() => { onSelectTab('expenses'); setShowMoreMenu(false); }}
-                    className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-slate-800 transition-colors ${
-                      currentTab === 'expenses' ? 'text-sky-400 font-semibold bg-slate-800/50' : ''
+                    className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-slate-800 transition-colors ${
+                      currentTab === 'expenses' ? 'text-sky-400 font-bold bg-slate-800/60' : ''
                     }`}
                   >
-                    <ReceiptText className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Expenses</span>
+                    <div className="flex items-center gap-2">
+                      <ReceiptText className="w-4 h-4 text-slate-400" />
+                      <span>Store Expenses</span>
+                    </div>
                   </button>
+
                   <button
                     onClick={() => { onSelectTab('cashups'); setShowMoreMenu(false); }}
-                    className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-slate-800 transition-colors ${
-                      currentTab === 'cashups' ? 'text-sky-400 font-semibold bg-slate-800/50' : ''
+                    className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-slate-800 transition-colors ${
+                      currentTab === 'cashups' ? 'text-sky-400 font-bold bg-slate-800/60' : ''
                     }`}
                   >
-                    <DollarSign className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Daily Cashups</span>
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="w-4 h-4 text-slate-400" />
+                      <span>Daily Cashups</span>
+                    </div>
                   </button>
                 </div>
+
                 <div className="py-1">
+                  <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    Administration
+                  </div>
+
                   <button
                     onClick={() => { onSelectTab('employees'); setShowMoreMenu(false); }}
-                    className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-slate-800 transition-colors ${
-                      currentTab === 'employees' ? 'text-sky-400 font-semibold bg-slate-800/50' : ''
+                    className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-slate-800 transition-colors ${
+                      currentTab === 'employees' ? 'text-purple-300 font-bold bg-purple-950/40' : ''
                     }`}
                   >
-                    <ShieldCheck className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Employees & Roles</span>
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck className="w-4 h-4 text-purple-400" />
+                      <span>Staff & Roles</span>
+                    </div>
+                    {currentUser.role !== 'admin' && (
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-950 text-purple-300 border border-purple-800 font-bold uppercase">
+                        Admin
+                      </span>
+                    )}
                   </button>
+
                   <button
                     onClick={() => { onSelectTab('settings'); setShowMoreMenu(false); }}
-                    className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-slate-800 transition-colors ${
-                      currentTab === 'settings' ? 'text-sky-400 font-semibold bg-slate-800/50' : ''
+                    className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-slate-800 transition-colors ${
+                      currentTab === 'settings' ? 'text-amber-300 font-bold bg-amber-950/40' : ''
                     }`}
                   >
-                    <Sliders className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Store Settings</span>
+                    <div className="flex items-center gap-2">
+                      <Sliders className="w-4 h-4 text-amber-400" />
+                      <span>Store Settings</span>
+                    </div>
+                    {currentUser.role !== 'admin' ? (
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-800 font-bold uppercase flex items-center gap-1">
+                        <Lock className="w-2.5 h-2.5" />
+                        Admin Only
+                      </span>
+                    ) : (
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800 font-bold uppercase">
+                        Admin
+                      </span>
+                    )}
                   </button>
                 </div>
               </div>
@@ -429,22 +520,41 @@ export const Header: React.FC<HeaderProps> = ({
 
             <button
               onClick={() => handleMobileNavClick('employees')}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold ${
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-semibold ${
                 currentTab === 'employees' ? 'bg-sky-600 text-white' : 'text-slate-300 hover:bg-slate-800'
               }`}
             >
-              <ShieldCheck className="w-4 h-4" />
-              <span>Employees</span>
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4" />
+                <span>Staff & Roles</span>
+              </div>
+              {currentUser.role !== 'admin' && (
+                <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-950 text-purple-300 border border-purple-800 font-bold uppercase">
+                  Admin
+                </span>
+              )}
             </button>
 
             <button
               onClick={() => handleMobileNavClick('settings')}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold ${
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-semibold ${
                 currentTab === 'settings' ? 'bg-sky-600 text-white' : 'text-slate-300 hover:bg-slate-800'
               }`}
             >
-              <Sliders className="w-4 h-4" />
-              <span>Settings</span>
+              <div className="flex items-center gap-2">
+                <Sliders className="w-4 h-4" />
+                <span>Store Settings</span>
+              </div>
+              {currentUser.role !== 'admin' ? (
+                <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-800 font-bold uppercase flex items-center gap-1">
+                  <Lock className="w-2.5 h-2.5" />
+                  Admin Only
+                </span>
+              ) : (
+                <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800 font-bold uppercase">
+                  Admin
+                </span>
+              )}
             </button>
           </div>
 

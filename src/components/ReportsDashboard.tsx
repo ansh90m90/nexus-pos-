@@ -384,8 +384,16 @@ export const ReportsDashboard: React.FC<ReportsDashboardProps> = ({
               <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                 {filteredSales.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="py-10 text-center text-slate-400 dark:text-slate-500">
-                      No sales found in this date range.
+                    <td colSpan={9} className="py-14 text-center">
+                      <div className="flex flex-col items-center justify-center max-w-sm mx-auto">
+                        <div className="w-12 h-12 rounded-xl bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 flex items-center justify-center mb-3">
+                          <Receipt className="w-6 h-6" />
+                        </div>
+                        <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">No Sales Completed Yet</h4>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                          Completed orders and transactions from the register will appear here with detailed receipt records.
+                        </p>
+                      </div>
                     </td>
                   </tr>
                 ) : (

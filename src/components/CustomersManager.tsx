@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { Customer, Sale, StoreConfig } from '../types/pos';
 import { CustomerCreditStatementModal } from './CustomerCreditStatementModal';
+import { searchCustomers } from '../utils/fuzzySearch';
 
 interface CustomersManagerProps {
   customers: Customer[];
@@ -72,20 +73,12 @@ export const CustomersManager: React.FC<CustomersManagerProps> = ({
   });
 
   const filteredCustomers = useMemo(() => {
-    const q = searchQuery.toLowerCase().trim();
-    return customers.filter(c => {
+    const searchResults = searchCustomers(customers, searchQuery);
+    return searchResults.filter(c => {
       if (balanceFilter === 'due_only' && (!c.credit_balance || c.credit_balance <= 0)) {
         return false;
       }
-      if (!q) return true;
-      return (
-        c.first_name.toLowerCase().includes(q) ||
-        c.last_name.toLowerCase().includes(q) ||
-        c.email.toLowerCase().includes(q) ||
-        c.phone_number.includes(q) ||
-        (c.company_name && c.company_name.toLowerCase().includes(q)) ||
-        (c.account_number && c.account_number.toLowerCase().includes(q))
-      );
+      return true;
     });
   }, [customers, searchQuery, balanceFilter]);
 
@@ -269,8 +262,41 @@ export const CustomersManager: React.FC<CustomersManagerProps> = ({
             <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
               {filteredCustomers.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-10 text-center text-slate-400 dark:text-slate-500">
-                    No customers match the current filter.
+                  <td colSpan={8} className="py-14 text-center">
+                    {customers.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center max-w-sm mx-auto">
+                        <div className="w-12 h-12 rounded-xl bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 flex items-center justify-center mb-3">
+                          <Users className="w-6 h-6" />
+                        </div>
+                        <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">Customer Directory is Clean</h4>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 mb-4">
+                          Add your client accounts to track store credit ledgers, loyalty points, and send WhatsApp/SMS statements.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={handleOpenAdd}
+                          className="flex items-center gap-1.5 px-4 py-2 bg-sky-600 hover:bg-sky-700 active:bg-sky-800 text-white rounded-lg text-xs font-bold transition-colors shadow-xs"
+                        >
+                          <Plus className="w-4 h-4" />
+                          <span>Add First Customer</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center">
+                        <Search className="w-8 h-8 text-slate-300 dark:text-slate-600 mb-2" />
+                        <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">No customers match your search or filter</p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSearchQuery('');
+                            setBalanceFilter('all');
+                          }}
+                          className="mt-2 text-xs text-sky-600 dark:text-sky-400 hover:underline font-semibold"
+                        >
+                          Clear filters
+                        </button>
+                      </div>
+                    )}
                   </td>
                 </tr>
               ) : (
@@ -330,10 +356,16 @@ export const CustomersManager: React.FC<CustomersManagerProps> = ({
 
                       {/* Loyalty */}
                       <td className="py-3 px-4 text-center">
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-900 rounded-full text-xs font-bold">
-                          <Award className="w-3 h-3 text-amber-500" />
-                          <span>{c.points} pts</span>
-                        </span>
+                        {config.enable_loyalty !== false ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-900 rounded-full text-xs font-bold">
+                            <Award className="w-3 h-3 text-amber-500" />
+                            <span>{c.points} pts</span>
+                          </span>
+                        ) : (
+                          <span className="text-[11px] text-slate-400 dark:text-slate-500 italic">
+                            Disabled
+                          </span>
+                        )}
                       </td>
 
                       {/* Lifetime Spend */}

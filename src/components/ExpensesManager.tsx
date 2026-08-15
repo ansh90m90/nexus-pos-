@@ -101,8 +101,24 @@ export const ExpensesManager: React.FC<ExpensesManagerProps> = ({
             <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
               {expenses.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-10 text-center text-slate-400 dark:text-slate-500">
-                    No expense records found.
+                  <td colSpan={7} className="py-14 text-center">
+                    <div className="flex flex-col items-center justify-center max-w-sm mx-auto">
+                      <div className="w-12 h-12 rounded-xl bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 flex items-center justify-center mb-3">
+                        <ReceiptText className="w-6 h-6" />
+                      </div>
+                      <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">No Expenses Recorded</h4>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 mb-4">
+                        Log petty cash payouts, utilities, supplies, or store maintenance costs here.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setIsModalOpen(true)}
+                        className="flex items-center gap-1.5 px-4 py-2 bg-sky-600 hover:bg-sky-700 active:bg-sky-800 text-white rounded-lg text-xs font-bold transition-colors shadow-xs"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>Add First Expense</span>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ) : (

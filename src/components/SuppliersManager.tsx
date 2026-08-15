@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Building2, Plus, Edit3, Trash2, Phone, Mail, MapPin, Search, X } from 'lucide-react';
 import { Supplier } from '../types/pos';
+import { searchSuppliers } from '../utils/fuzzySearch';
 
 interface SuppliersManagerProps {
   suppliers: Supplier[];
@@ -42,15 +43,7 @@ export const SuppliersManager: React.FC<SuppliersManagerProps> = ({
   });
 
   const filteredSuppliers = useMemo(() => {
-    const q = searchQuery.toLowerCase().trim();
-    if (!q) return suppliers;
-    return suppliers.filter(s =>
-      s.company_name.toLowerCase().includes(q) ||
-      s.first_name.toLowerCase().includes(q) ||
-      s.last_name.toLowerCase().includes(q) ||
-      s.email.toLowerCase().includes(q) ||
-      s.account_number.toLowerCase().includes(q)
-    );
+    return searchSuppliers(suppliers, searchQuery);
   }, [suppliers, searchQuery]);
 
   const handleOpenAdd = () => {
@@ -153,8 +146,38 @@ export const SuppliersManager: React.FC<SuppliersManagerProps> = ({
             <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
               {filteredSuppliers.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-10 text-center text-slate-400 dark:text-slate-500">
-                    No suppliers found.
+                  <td colSpan={6} className="py-14 text-center">
+                    {suppliers.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center max-w-sm mx-auto">
+                        <div className="w-12 h-12 rounded-xl bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 flex items-center justify-center mb-3">
+                          <Building2 className="w-6 h-6" />
+                        </div>
+                        <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">No Suppliers Registered</h4>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 mb-4">
+                          Add wholesale vendors, distributors, and logistics partners to manage purchase orders and receiving stock.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={handleOpenAdd}
+                          className="flex items-center gap-1.5 px-4 py-2 bg-sky-600 hover:bg-sky-700 active:bg-sky-800 text-white rounded-lg text-xs font-bold transition-colors shadow-xs"
+                        >
+                          <Plus className="w-4 h-4" />
+                          <span>Add First Supplier</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center">
+                        <Search className="w-8 h-8 text-slate-300 dark:text-slate-600 mb-2" />
+                        <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">No suppliers match your search</p>
+                        <button
+                          type="button"
+                          onClick={() => setSearchQuery('')}
+                          className="mt-2 text-xs text-sky-600 dark:text-sky-400 hover:underline font-semibold"
+                        >
+                          Clear search
+                        </button>
+                      </div>
+                    )}
                   </td>
                 </tr>
               ) : (

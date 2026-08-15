@@ -1,3 +1,14 @@
+export type ItemType = 'standard' | 'weighted' | 'open_price';
+
+export interface ItemVariant {
+  id: string;
+  name: string; // e.g. "Large", "Small", "500g Pack", "1kg Box", "Red", "XL"
+  item_number: string; // Variant barcode/SKU
+  cost_price: number;
+  unit_price: number;
+  quantity: number;
+}
+
 export interface Item {
   id: string;
   item_number: string; // Barcode / SKU
@@ -7,6 +18,9 @@ export interface Item {
   unit_price: number;
   quantity: number;
   reorder_level: number;
+  item_type?: ItemType; // 'standard' | 'weighted' (rashan/loose in grams/kg) | 'open_price'
+  unit_name?: string; // 'unit', 'kg', 'g', 'ltr', 'ml', 'pack', 'meter', etc.
+  variants?: ItemVariant[];
   tax_category_id?: string;
   description?: string;
   image?: string;
@@ -67,6 +81,12 @@ export interface SaleItem {
   discount_percent: number;
   tax_percent: number;
   total: number;
+  variant_id?: string;
+  variant_name?: string;
+  unit_name?: string;
+  item_type?: ItemType;
+  weight_in_grams?: number;
+  target_price_requested?: number;
 }
 
 export type PaymentType = 'Cash' | 'UPI / QR Code' | 'Check' | 'Gift Card' | 'Customer Credit';
@@ -170,6 +190,8 @@ export interface StoreConfig {
   receipt_footer: string;
   barcode_format: 'CODE128' | 'EAN13' | 'UPC';
   enable_sound: boolean;
+  enable_loyalty?: boolean;
+  loyalty_points_ratio?: number;
   theme: 'light' | 'dark';
   accent_color?: 'sky' | 'emerald' | 'indigo' | 'amber' | 'slate';
   upi_id?: string;

@@ -57,6 +57,7 @@ export const App: React.FC = () => {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [currentUser, setCurrentUser] = useState<Employee | null>(null);
   const [config, setConfig] = useState<StoreConfig | null>(null);
+  const [isFirstTime, setIsFirstTime] = useState<boolean>(() => storage.isFirstTimeSetup());
 
   // Cloud Sync & Account States
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
@@ -78,6 +79,16 @@ export const App: React.FC = () => {
 
   // Load all initial data from storage
   const loadData = useCallback(() => {
+    // Check if localStorage contains old demo items (e.g. item-101) or demo customers (cust-1) and purge them to clean store
+    const existingRawItems = localStorage.getItem('ospos_items');
+    if (existingRawItems && (existingRawItems.includes('item-101') || existingRawItems.includes('Artisan Espresso Blend'))) {
+      storage.clearAllStoreData();
+    }
+    const existingRawCust = localStorage.getItem('ospos_customers');
+    if (existingRawCust && (existingRawCust.includes('cust-1') || existingRawCust.includes('Eleanor'))) {
+      storage.saveCustomers([]);
+    }
+
     const loadedItems = storage.getItems();
     const loadedCustomers = storage.getCustomers();
     const loadedSuppliers = storage.getSuppliers();
@@ -136,9 +147,21 @@ export const App: React.FC = () => {
       firebaseUser,
       (cloudItems) => {
         if (cloudItems.length > 0) {
-          // Merge items
+          // Merge items safely preserving variants and metadata
           const currentLocalItems = storage.getItems();
-          const merged = [...cloudItems];
+          const merged = cloudItems.map(cItem => {
+            const local = currentLocalItems.find(l => l.id === cItem.id);
+            if (local) {
+              return {
+                ...local,
+                ...cItem,
+                variants: (cItem.variants && cItem.variants.length > 0) ? cItem.variants : (local.variants || []),
+                item_type: cItem.item_type || local.item_type || 'standard',
+                unit_name: cItem.unit_name || local.unit_name || 'unit',
+              };
+            }
+            return cItem;
+          });
           currentLocalItems.forEach(localItem => {
             if (!merged.some(m => m.id === localItem.id)) {
               merged.push(localItem);
@@ -538,14 +561,66 @@ export const App: React.FC = () => {
     setHeldSales(prev => prev.filter(h => h.id !== heldId));
   };
 
+  const handleGoogleLoginFromGateway = async () => {
+    setSyncState('syncing');
+    setSyncError(null);
+    try {
+      const account = await loginWithGoogle();
+      setUserAccount(account);
+      setSyncState('synced');
+      setLastSyncedAt(new Date().toISOString());
+
+      // Find or create admin employee for this Google user
+      let adminEmp = employees.find(e => e.role === 'admin' && (e.email === account.email || e.username === 'admin'));
+      if (!adminEmp) {
+        adminEmp = {
+          id: 'emp-google-' + (account.uid ? account.uid.substring(0, 8) : Date.now()),
+          first_name: account.displayName?.split(' ')[0] || 'Store',
+          last_name: account.displayName?.split(' ').slice(1).join(' ') || 'Owner',
+          username: account.email ? account.email.split('@')[0].replace(/[^a-z0-9_]/gi, '') : 'owner',
+          role: 'admin',
+          pin: '1234',
+          email: account.email || '',
+          phone_number: '',
+          is_active: true,
+        };
+        const updated = [adminEmp, ...employees.filter(e => e.id !== adminEmp?.id)];
+        storage.saveEmployees(updated);
+        setEmployees(updated);
+      } else if (account.displayName) {
+        const parts = account.displayName.split(' ');
+        adminEmp = {
+          ...adminEmp,
+          first_name: parts[0] || adminEmp.first_name,
+          last_name: parts.slice(1).join(' ') || adminEmp.last_name,
+          email: account.email || adminEmp.email,
+        };
+        const updated = employees.map(e => e.id === adminEmp?.id ? adminEmp! : e);
+        storage.saveEmployees(updated);
+        setEmployees(updated);
+      }
+
+      storage.markFirstTimeSetupComplete();
+      setIsFirstTime(false);
+      handleLoginSuccess(adminEmp);
+    } catch (err: any) {
+      setSyncError(err?.message || 'Google Login failed');
+      setSyncState('error');
+      throw err;
+    }
+  };
+
   // If no user is authenticated, render the terminal Auth Gateway
   if (!currentUser) {
     return (
       <AuthGateway
         employees={employees}
         config={config}
+        isFirstTime={isFirstTime}
         onLoginSuccess={handleLoginSuccess}
         onRegisterStaff={handleRegisterStaff}
+        onGoogleSignIn={handleGoogleLoginFromGateway}
+        onCompleteFirstTimeSetup={() => setIsFirstTime(false)}
       />
     );
   }
@@ -597,6 +672,7 @@ export const App: React.FC = () => {
             onShowReceipt={sale => setActiveReceiptSale(sale)}
             onOpenSwitchUser={() => setIsLoginModalOpen(true)}
             onOpenShortcuts={() => setIsShortcutsModalOpen(true)}
+            onNavigateToInventory={() => setCurrentTab('inventory')}
           />
         )}
 
