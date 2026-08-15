@@ -17,33 +17,33 @@ const STORAGE_KEYS = {
 };
 
 const DEFAULT_CONFIG: StoreConfig = {
-  company_name: 'Nexus POS Retail',
-  address: '100 Market Street, Suite 400, San Francisco, CA 94105',
-  phone: '(415) 555-0199',
-  email: 'store@nexuspos.io',
-  website: 'https://nexuspos.io',
+  company_name: 'Open Source POS',
+  address: '',
+  phone: '',
+  email: '',
+  website: '',
   currency_symbol: '$',
-  default_tax_rate: 8.5,
-  receipt_header: 'Welcome to Nexus POS!\nThank you for supporting local business.',
-  receipt_footer: 'Return policy: 30 days with receipt.\nHave a wonderful day!',
+  default_tax_rate: 0,
+  receipt_header: 'Welcome to our store!\nThank you for your business.',
+  receipt_footer: 'Please visit again!',
   barcode_format: 'CODE128',
   enable_sound: true,
   enable_loyalty: true,
   theme: 'light',
   accent_color: 'sky',
-  upi_id: 'nexuspos@okhdfcbank',
-  upi_payee_name: 'Nexus POS Retail',
-  upi_qr_note: 'POS Order Payment',
+  upi_id: '',
+  upi_payee_name: '',
+  upi_qr_note: '',
 };
 
 const DEFAULT_EMPLOYEES: Employee[] = [
   {
     id: 'emp-admin',
-    first_name: 'Admin',
-    last_name: '',
+    first_name: 'Store',
+    last_name: 'Owner',
     username: 'admin',
     role: 'admin',
-    pin: '1234',
+    pin: '',
     email: '',
     phone_number: '',
     is_active: true,
@@ -54,82 +54,7 @@ const DEFAULT_CUSTOMERS: Customer[] = [];
 
 const DEFAULT_SUPPLIERS: Supplier[] = [];
 
-const DEFAULT_ITEMS: Item[] = [
-  {
-    id: 'item-chips-1',
-    item_number: 'SKU-CHIPS-101',
-    name: 'Classic Crispy Potato Chips',
-    category: 'Snacks & Packaged',
-    cost_price: 1.20,
-    unit_price: 2.00,
-    quantity: 45,
-    reorder_level: 10,
-    item_type: 'standard',
-    unit_name: 'pack',
-    variants: [
-      { id: 'var-chips-s', name: 'Small (35g)', item_number: 'SKU-CHIPS-S', cost_price: 0.60, unit_price: 1.00, quantity: 15 },
-      { id: 'var-chips-m', name: 'Medium (90g)', item_number: 'SKU-CHIPS-M', cost_price: 1.20, unit_price: 2.00, quantity: 20 },
-      { id: 'var-chips-l', name: 'Party Pack (200g)', item_number: 'SKU-CHIPS-L', cost_price: 2.30, unit_price: 3.80, quantity: 10 },
-    ],
-    description: 'Golden fried crispy potato chips with savory seasoning',
-  },
-  {
-    id: 'item-rahul-rice',
-    item_number: 'SKU-RICE-202',
-    name: 'Rahul Special Royal Basmati Rice',
-    category: 'Grocery & Rashan',
-    cost_price: 5.50,
-    unit_price: 8.50,
-    quantity: 30,
-    reorder_level: 8,
-    item_type: 'standard',
-    unit_name: 'pack',
-    variants: [
-      { id: 'var-rice-1k', name: '1kg Bag', item_number: 'SKU-RICE-1KG', cost_price: 5.50, unit_price: 8.50, quantity: 15 },
-      { id: 'var-rice-5k', name: '5kg Family Pack', item_number: 'SKU-RICE-5KG', cost_price: 24.00, unit_price: 38.00, quantity: 15 },
-    ],
-    description: 'Aromatic extra long grain Basmati rice',
-  },
-  {
-    id: 'item-rashan-sugar',
-    item_number: 'SKU-SUGAR-303',
-    name: 'Pure White Sugar (Loose Rashan)',
-    category: 'Grocery & Rashan',
-    cost_price: 0.80,
-    unit_price: 1.40,
-    quantity: 100,
-    reorder_level: 20,
-    item_type: 'weighted',
-    unit_name: 'kg',
-    description: 'Open value weighed loose sugar for retail customers',
-  },
-  {
-    id: 'item-rashan-flour',
-    item_number: 'SKU-ATTA-404',
-    name: 'Fresh Whole Wheat Atta / Flour',
-    category: 'Grocery & Rashan',
-    cost_price: 0.65,
-    unit_price: 1.10,
-    quantity: 150,
-    reorder_level: 25,
-    item_type: 'weighted',
-    unit_name: 'kg',
-    description: 'Stone ground whole wheat flour in loose kilograms',
-  },
-  {
-    id: 'item-choc-biscuit',
-    item_number: 'SKU-BISC-505',
-    name: 'Chocolate Cream Crunch Biscuits',
-    category: 'Snacks & Packaged',
-    cost_price: 0.90,
-    unit_price: 1.75,
-    quantity: 50,
-    reorder_level: 12,
-    item_type: 'standard',
-    unit_name: 'pack',
-    description: 'Double chocolate layered cream biscuits',
-  },
-];
+const DEFAULT_ITEMS: Item[] = [];
 
 const DEFAULT_SALES: Sale[] = [];
 
@@ -158,7 +83,24 @@ class StorageService {
 
   // Items
   public getItems(): Item[] {
-    return this.getItem<Item[]>(STORAGE_KEYS.ITEMS, DEFAULT_ITEMS);
+    const raw = this.getItem<Item[]>(STORAGE_KEYS.ITEMS, DEFAULT_ITEMS);
+    return (raw || []).filter(i => 
+      !i.id.startsWith('item-chips') && 
+      !i.id.startsWith('item-rahul') && 
+      !i.id.startsWith('item-rashan') && 
+      !i.id.startsWith('item-choc') &&
+      i.id !== 'item-101' &&
+      i.id !== 'item-102' &&
+      i.id !== 'item-103' &&
+      i.id !== 'item-104' &&
+      i.id !== 'item-105' &&
+      i.name !== 'Classic Crispy Potato Chips' &&
+      i.name !== 'Rahul Special Royal Basmati Rice' &&
+      i.name !== 'Pure White Sugar (Loose Rashan)' &&
+      i.name !== 'Fresh Whole Wheat Atta / Flour' &&
+      i.name !== 'Chocolate Cream Crunch Biscuits' &&
+      i.name !== 'Artisan Espresso Blend'
+    );
   }
 
   public saveItems(items: Item[]): void {

@@ -79,17 +79,31 @@ export const App: React.FC = () => {
 
   // Load all initial data from storage
   const loadData = useCallback(() => {
-    // Check if localStorage contains old demo items (e.g. item-101) or demo customers (cust-1) and purge them to clean store
+    // Check if localStorage contains old demo items and purge them to keep clean store
     const existingRawItems = localStorage.getItem('ospos_items');
-    if (existingRawItems && (existingRawItems.includes('item-101') || existingRawItems.includes('Artisan Espresso Blend'))) {
-      storage.clearAllStoreData();
+    if (existingRawItems && (
+      existingRawItems.includes('item-chips') ||
+      existingRawItems.includes('item-rahul') ||
+      existingRawItems.includes('item-rashan') ||
+      existingRawItems.includes('item-choc') ||
+      existingRawItems.includes('item-101') ||
+      existingRawItems.includes('item-102') ||
+      existingRawItems.includes('Classic Crispy Potato Chips') ||
+      existingRawItems.includes('Rahul Special Royal Basmati Rice') ||
+      existingRawItems.includes('Pure White Sugar') ||
+      existingRawItems.includes('Fresh Whole Wheat Atta') ||
+      existingRawItems.includes('Chocolate Cream Crunch Biscuits') ||
+      existingRawItems.includes('Artisan Espresso Blend')
+    )) {
+      const cleanItems = storage.getItems();
+      storage.saveItems(cleanItems);
     }
     const existingRawCust = localStorage.getItem('ospos_customers');
-    if (existingRawCust && (existingRawCust.includes('cust-1') || existingRawCust.includes('Eleanor'))) {
+    if (existingRawCust && (existingRawCust.includes('cust-1') || existingRawCust.includes('Eleanor') || existingRawCust.includes('Rahul') || existingRawCust.includes('Priya'))) {
       storage.saveCustomers([]);
     }
 
-    // Check if localStorage contains old demo employees (e.g. Connor, Rivera, manager, cashier) and purge them
+    // Check if localStorage contains old demo employees and purge them
     const existingRawEmployees = localStorage.getItem('ospos_employees');
     if (existingRawEmployees && (
       existingRawEmployees.includes('Connor') || 
