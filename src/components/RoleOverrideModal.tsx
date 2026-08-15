@@ -21,15 +21,17 @@ export const RoleOverrideModal: React.FC<RoleOverrideModalProps> = ({
 }) => {
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
-
-  if (!isOpen) return null;
+  const [selectedEmpId, setSelectedEmpId] = useState<string>('');
 
   const eligibleEmployees = employees.filter(
     e => e.is_active !== false && (requiredRole === 'manager' ? (e.role === 'admin' || e.role === 'manager') : e.role === 'admin')
   );
 
-  const [selectedEmpId, setSelectedEmpId] = useState<string>(eligibleEmployees[0]?.id || '');
-  const selectedEmp = eligibleEmployees.find(e => e.id === selectedEmpId) || eligibleEmployees[0];
+  // Sync selected employee ID if not set or not in eligible list
+  const activeEmpId = selectedEmpId || eligibleEmployees[0]?.id || '';
+  const selectedEmp = eligibleEmployees.find(e => e.id === activeEmpId) || eligibleEmployees[0];
+
+  if (!isOpen) return null;
 
   const handleVerify = (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,7 +82,7 @@ export const RoleOverrideModal: React.FC<RoleOverrideModalProps> = ({
                     setError('');
                   }}
                   className={`w-full flex items-center justify-between px-3 py-2 rounded-lg border text-xs text-left transition-all ${
-                    selectedEmpId === emp.id
+                    activeEmpId === emp.id
                       ? 'border-amber-500 bg-amber-50 dark:bg-amber-950/60 font-bold text-amber-950 dark:text-amber-200 ring-1 ring-amber-500'
                       : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300'
                   }`}
@@ -88,7 +90,7 @@ export const RoleOverrideModal: React.FC<RoleOverrideModalProps> = ({
                   <div className="flex items-center gap-2">
                     <User className="w-3.5 h-3.5 text-slate-400" />
                     <span>{emp.first_name} {emp.last_name}</span>
-                    {selectedEmpId === emp.id && <Check className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />}
+                    {activeEmpId === emp.id && <Check className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />}
                   </div>
                   <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700">
                     {emp.role}

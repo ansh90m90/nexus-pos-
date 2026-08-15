@@ -38,86 +38,21 @@ const DEFAULT_CONFIG: StoreConfig = {
 
 const DEFAULT_EMPLOYEES: Employee[] = [
   {
-    id: 'emp-1',
+    id: 'emp-admin',
     first_name: 'Admin',
-    last_name: 'User',
+    last_name: '',
     username: 'admin',
     role: 'admin',
     pin: '1234',
-    email: 'admin@opensourcepos.org',
-    phone_number: '555-0101',
-    is_active: true,
-  },
-  {
-    id: 'emp-2',
-    first_name: 'Sarah',
-    last_name: 'Connor',
-    username: 'manager',
-    role: 'manager',
-    pin: '5678',
-    email: 'sarah@opensourcepos.org',
-    phone_number: '555-0102',
-    is_active: true,
-  },
-  {
-    id: 'emp-3',
-    first_name: 'Alex',
-    last_name: 'Rivera',
-    username: 'cashier',
-    role: 'cashier',
-    pin: '0000',
-    email: 'alex@opensourcepos.org',
-    phone_number: '555-0103',
+    email: '',
+    phone_number: '',
     is_active: true,
   },
 ];
 
-const DEFAULT_CUSTOMERS: Customer[] = [
-  {
-    id: 'cust-1',
-    first_name: 'Rahul',
-    last_name: 'Sharma',
-    email: 'rahul.sharma@example.com',
-    phone_number: '9876543210',
-    address_1: '124 Market Street',
-    city: 'New Delhi',
-    account_number: 'ACC-1001',
-    company_name: 'Sharma Enterprises',
-    points: 120,
-    credit_limit: 500,
-    credit_balance: 45.00,
-    total_spent: 850.00,
-  },
-  {
-    id: 'cust-2',
-    first_name: 'Priya',
-    last_name: 'Patel',
-    email: 'priya.patel@example.com',
-    phone_number: '9811223344',
-    address_1: '45 Green Park',
-    city: 'Mumbai',
-    account_number: 'ACC-1002',
-    points: 75,
-    credit_limit: 1000,
-    credit_balance: 0,
-    total_spent: 420.00,
-  },
-];
+const DEFAULT_CUSTOMERS: Customer[] = [];
 
-const DEFAULT_SUPPLIERS: Supplier[] = [
-  {
-    id: 'sup-1',
-    company_name: 'National Groceries & Grains Ltd',
-    agency_name: 'North Distributor',
-    first_name: 'Vikram',
-    last_name: 'Singh',
-    email: 'orders@nationalgrains.com',
-    phone_number: '9800112233',
-    address_1: 'Plot 44 Industrial Area',
-    city: 'Delhi',
-    account_number: 'SUP-4001',
-  },
-];
+const DEFAULT_SUPPLIERS: Supplier[] = [];
 
 const DEFAULT_ITEMS: Item[] = [
   {
@@ -257,7 +192,8 @@ class StorageService {
 
   // Customers
   public getCustomers(): Customer[] {
-    return this.getItem<Customer[]>(STORAGE_KEYS.CUSTOMERS, DEFAULT_CUSTOMERS);
+    const raw = this.getItem<Customer[]>(STORAGE_KEYS.CUSTOMERS, DEFAULT_CUSTOMERS);
+    return (raw || []).filter(c => c.id !== 'cust-1' && c.id !== 'cust-2' && c.first_name !== 'Rahul' && c.first_name !== 'Priya');
   }
 
   public saveCustomers(customers: Customer[]): void {
@@ -355,7 +291,8 @@ class StorageService {
 
   // Suppliers
   public getSuppliers(): Supplier[] {
-    return this.getItem<Supplier[]>(STORAGE_KEYS.SUPPLIERS, DEFAULT_SUPPLIERS);
+    const raw = this.getItem<Supplier[]>(STORAGE_KEYS.SUPPLIERS, DEFAULT_SUPPLIERS);
+    return (raw || []).filter(s => s.id !== 'sup-1' && s.company_name !== 'National Groceries & Grains Ltd');
   }
 
   public saveSuppliers(suppliers: Supplier[]): void {
@@ -624,7 +561,19 @@ class StorageService {
 
   // Employees & Auth & Device Recognition
   public getEmployees(): Employee[] {
-    return this.getItem<Employee[]>(STORAGE_KEYS.EMPLOYEES, DEFAULT_EMPLOYEES);
+    const raw = this.getItem<Employee[]>(STORAGE_KEYS.EMPLOYEES, DEFAULT_EMPLOYEES);
+    const cleaned = (raw || []).filter(e => 
+      e.id !== 'emp-2' && 
+      e.id !== 'emp-3' && 
+      e.last_name !== 'Connor' && 
+      e.last_name !== 'Rivera' &&
+      e.username !== 'manager' &&
+      e.username !== 'cashier'
+    );
+    if (cleaned.length === 0) {
+      return DEFAULT_EMPLOYEES;
+    }
+    return cleaned;
   }
 
   public saveEmployees(employees: Employee[]): void {

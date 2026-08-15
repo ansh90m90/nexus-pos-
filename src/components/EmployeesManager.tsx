@@ -39,6 +39,17 @@ export const EmployeesManager: React.FC<EmployeesManagerProps> = ({
   const [editingEmpId, setEditingEmpId] = useState<string | null>(null);
   const [showPin, setShowPin] = useState(false);
 
+  // Owner PIN setup state for transitioning to Team Mode
+  const [ownerPin, setOwnerPin] = useState('');
+  const [confirmOwnerPin, setConfirmOwnerPin] = useState('');
+  const [showOwnerPin, setShowOwnerPin] = useState(false);
+
+  // Standalone Owner Password Modal state
+  const [isOwnerModalOpen, setIsOwnerModalOpen] = useState(false);
+  const [newOwnerPin, setNewOwnerPin] = useState('');
+  const [confirmNewOwnerPin, setConfirmNewOwnerPin] = useState('');
+  const [showNewOwnerPin, setShowNewOwnerPin] = useState(false);
+
   // Custom Delete Modal state
   const [deleteTarget, setDeleteTarget] = useState<Employee | null>(null);
   const [isDeleteAllModalOpen, setIsDeleteAllModalOpen] = useState(false);
@@ -46,6 +57,7 @@ export const EmployeesManager: React.FC<EmployeesManagerProps> = ({
 
   const staffEmployees = employees.filter(e => e.role !== 'admin' && e.is_active !== false);
   const hasStaff = staffEmployees.length > 0;
+  const primaryAdmin = employees.find(e => e.role === 'admin') || employees[0];
 
   const [formData, setFormData] = useState<{
     first_name: string;
@@ -90,6 +102,9 @@ export const EmployeesManager: React.FC<EmployeesManagerProps> = ({
     });
     setEditingEmpId(null);
     setShowPin(false);
+    setOwnerPin(primaryAdmin?.pin || '');
+    setConfirmOwnerPin(primaryAdmin?.pin || '');
+    setShowOwnerPin(false);
     setIsModalOpen(true);
   };
 
@@ -116,10 +131,22 @@ export const EmployeesManager: React.FC<EmployeesManagerProps> = ({
       return;
     }
     
-    // Only Admin role strictly requires a password/PIN
+    // Only Admin role strictly requires a password/PIN when saving an Admin
     if (formData.role === 'admin' && !formData.pin.trim()) {
       showToast('An administrator security PIN or password is required.', 'error');
       return;
+    }
+
+    // If adding first staff member (transitioning from Solo Owner to Team Mode), require owner PIN
+    if (!editingEmpId && formData.role !== 'admin' && !hasStaff) {
+      if (!ownerPin.trim()) {
+        showToast('Please set an Owner / Administrator password or PIN to protect your store.', 'error');
+        return;
+      }
+      if (ownerPin.trim() !== confirmOwnerPin.trim()) {
+        showToast('Owner PIN and confirmation PIN do not match.', 'error');
+        return;
+      }
     }
 
     if (editingEmpId) {
@@ -134,11 +161,55 @@ export const EmployeesManager: React.FC<EmployeesManagerProps> = ({
         ...formData,
         id: 'emp-' + Date.now(),
       };
-      onSaveEmployees([...employees, newEmp]);
-      showToast(`Added new ${formData.role.toUpperCase()} account: ${formData.first_name}`);
+
+      let updatedList = [...employees];
+
+      // If this is the first staff member, also update the primary admin's PIN
+      if (formData.role !== 'admin' && !hasStaff && ownerPin.trim()) {
+        updatedList = updatedList.map(emp => {
+          if (emp.role === 'admin') {
+            return { ...emp, pin: ownerPin.trim() };
+          }
+          return emp;
+        });
+      }
+
+      updatedList.push(newEmp);
+      onSaveEmployees(updatedList);
+
+      if (formData.role !== 'admin' && !hasStaff) {
+        showToast(`Owner password set & added staff member ${formData.first_name}! Owner account is now protected.`);
+      } else {
+        showToast(`Added new ${formData.role.toUpperCase()} account: ${formData.first_name}`);
+      }
     }
 
     setIsModalOpen(false);
+  };
+
+  const handleSaveOwnerPin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newOwnerPin.trim()) {
+      showToast('Please enter a valid password or PIN.', 'error');
+      return;
+    }
+    if (newOwnerPin.trim() !== confirmNewOwnerPin.trim()) {
+      showToast('Password / PIN entries do not match.', 'error');
+      return;
+    }
+
+    const updated = employees.map(emp => {
+      if (emp.role === 'admin') {
+        return { ...emp, pin: newOwnerPin.trim() };
+      }
+      return emp;
+    });
+
+    onSaveEmployees(updated);
+    setIsOwnerModalOpen(false);
+    setNewOwnerPin('');
+    setConfirmNewOwnerPin('');
+    showToast('Owner / Administrator security PIN updated successfully!');
   };
 
   const initiateDelete = (emp: Employee) => {
@@ -269,8 +340,22 @@ export const EmployeesManager: React.FC<EmployeesManagerProps> = ({
           </div>
 
           <button
+            onClick={() => {
+              setNewOwnerPin(primaryAdmin?.pin || '');
+              setConfirmNewOwnerPin(primaryAdmin?.pin || '');
+              setShowNewOwnerPin(false);
+              setIsOwnerModalOpen(true);
+            }}
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-bold transition-colors whitespace-nowrap cursor-pointer"
+            title="Configure or Change Owner / Administrator Password"
+          >
+            <Lock className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+            <span>Owner PIN</span>
+          </button>
+
+          <button
             onClick={() => handleOpenAdd()}
-            className="flex items-center gap-1.5 px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors whitespace-nowrap"
+            className="flex items-center gap-1.5 px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors whitespace-nowrap cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>New Staff Member</span>
@@ -413,9 +498,23 @@ export const EmployeesManager: React.FC<EmployeesManagerProps> = ({
                       </td>
                       <td className="py-3 px-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
+                          {isAdmin && (
+                            <button
+                              onClick={() => {
+                                setNewOwnerPin(emp.pin || '');
+                                setConfirmNewOwnerPin(emp.pin || '');
+                                setShowNewOwnerPin(false);
+                                setIsOwnerModalOpen(true);
+                              }}
+                              className="p-1.5 bg-purple-50 dark:bg-purple-950/60 hover:bg-purple-100 dark:hover:bg-purple-900/60 text-purple-700 dark:text-purple-400 rounded-lg transition-colors cursor-pointer"
+                              title="Set or Change Owner / Admin Security PIN"
+                            >
+                              <KeyRound className="w-4 h-4" />
+                            </button>
+                          )}
                           <button
                             onClick={() => handleOpenEdit(emp)}
-                            className="p-1.5 bg-sky-50 dark:bg-sky-950/60 hover:bg-sky-100 dark:hover:bg-sky-900/60 text-sky-700 dark:text-sky-400 rounded-lg transition-colors"
+                            className="p-1.5 bg-sky-50 dark:bg-sky-950/60 hover:bg-sky-100 dark:hover:bg-sky-900/60 text-sky-700 dark:text-sky-400 rounded-lg transition-colors cursor-pointer"
                             title="Edit Role & Details"
                           >
                             <Edit3 className="w-4 h-4" />
@@ -573,6 +672,77 @@ export const EmployeesManager: React.FC<EmployeesManagerProps> = ({
             </div>
 
             <form onSubmit={handleSave} className="p-5 space-y-4">
+              {/* If adding first staff member (Solo -> Team Mode), require owner to set Owner Password */}
+              {!editingEmpId && formData.role !== 'admin' && !hasStaff && (
+                <div className="p-4 bg-amber-50 dark:bg-amber-950/50 border-2 border-amber-400 dark:border-amber-700/80 rounded-xl space-y-3 animate-in fade-in duration-150">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-xs font-bold text-amber-900 dark:text-amber-200">
+                      <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                      <span>Step 1: Set Owner Password / PIN (Required)</span>
+                    </div>
+                    <span className="px-2 py-0.5 rounded bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-200 text-[10px] font-bold">
+                      Team Protection
+                    </span>
+                  </div>
+
+                  <p className="text-[11px] text-amber-800 dark:text-amber-300/90 leading-relaxed">
+                    Adding your first staff member activates <strong>Team Mode</strong>. Please set a secure password/PIN for your Owner account ({primaryAdmin?.first_name || 'Admin'}) so your staff cannot access store settings, change inventory prices, or view revenue reports.
+                  </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    <div>
+                      <label className="block text-[11px] font-bold text-amber-950 dark:text-amber-200 mb-1">
+                        Owner Security PIN / Password *
+                      </label>
+                      <input
+                        type={showOwnerPin ? 'text' : 'password'}
+                        required
+                        maxLength={12}
+                        value={ownerPin}
+                        onChange={e => setOwnerPin(e.target.value)}
+                        placeholder="e.g. 1234 or pass"
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-700 rounded-lg text-xs font-mono focus:ring-2 focus:ring-amber-500 text-slate-900 dark:text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-amber-950 dark:text-amber-200 mb-1">
+                        Confirm Owner PIN / Password *
+                      </label>
+                      <input
+                        type={showOwnerPin ? 'text' : 'password'}
+                        required
+                        maxLength={12}
+                        value={confirmOwnerPin}
+                        onChange={e => setConfirmOwnerPin(e.target.value)}
+                        placeholder="Re-enter Owner PIN"
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-700 rounded-lg text-xs font-mono focus:ring-2 focus:ring-amber-500 text-slate-900 dark:text-white"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between text-[11px] pt-0.5">
+                    <button
+                      type="button"
+                      onClick={() => setShowOwnerPin(!showOwnerPin)}
+                      className="text-amber-800 dark:text-amber-300 hover:underline flex items-center gap-1 font-semibold cursor-pointer"
+                    >
+                      {showOwnerPin ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                      <span>{showOwnerPin ? 'Hide PIN' : 'Show PIN'}</span>
+                    </button>
+
+                    {ownerPin && confirmOwnerPin && ownerPin !== confirmOwnerPin && (
+                      <span className="text-rose-600 dark:text-rose-400 font-bold">PINs do not match</span>
+                    )}
+                    {ownerPin && confirmOwnerPin && ownerPin === confirmOwnerPin && (
+                      <span className="text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-1">
+                        <Check className="w-3 h-3" /> Ready
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Step 2 or Regular Form Details */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">First Name *</label>
@@ -810,6 +980,106 @@ export const EmployeesManager: React.FC<EmployeesManagerProps> = ({
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 4: Owner Security PIN / Password Management Modal */}
+      {isOwnerModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-xs p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div className="bg-purple-700 dark:bg-purple-900 px-5 py-4 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Lock className="w-5 h-5 text-white" />
+                <span className="font-bold text-sm">Owner / Admin Security Password</span>
+              </div>
+              <button
+                onClick={() => setIsOwnerModalOpen(false)}
+                className="text-purple-200 hover:text-white transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveOwnerPin} className="p-6 space-y-4">
+              <div className="p-3.5 bg-purple-50 dark:bg-purple-950/50 border border-purple-200 dark:border-purple-900/60 rounded-xl space-y-1 text-xs text-purple-900 dark:text-purple-200">
+                <div className="font-bold flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                  <span>Admin Account: {primaryAdmin?.first_name} {primaryAdmin?.last_name} (@{primaryAdmin?.username})</span>
+                </div>
+                <p className="text-[11px] text-purple-800 dark:text-purple-300/90 leading-relaxed">
+                  This password protects your administrative privileges, store settings, profit margins, and prevents staff from deleting records or accounts.
+                </p>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    New Security PIN / Password *
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowNewOwnerPin(!showNewOwnerPin)}
+                    className="text-[11px] text-purple-600 dark:text-purple-400 hover:underline flex items-center gap-1 font-semibold cursor-pointer"
+                  >
+                    {showNewOwnerPin ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                    <span>{showNewOwnerPin ? 'Hide' : 'Show'}</span>
+                  </button>
+                </div>
+                <div className="relative">
+                  <input
+                    type={showNewOwnerPin ? 'text' : 'password'}
+                    required
+                    maxLength={16}
+                    value={newOwnerPin}
+                    onChange={e => setNewOwnerPin(e.target.value)}
+                    placeholder="Enter new owner password or PIN"
+                    className="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg text-xs font-mono tracking-wider focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                    autoFocus
+                  />
+                  <Lock className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-3" />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Confirm New Password / PIN *
+                </label>
+                <div className="relative">
+                  <input
+                    type={showNewOwnerPin ? 'text' : 'password'}
+                    required
+                    maxLength={16}
+                    value={confirmNewOwnerPin}
+                    onChange={e => setConfirmNewOwnerPin(e.target.value)}
+                    placeholder="Re-enter password or PIN"
+                    className="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg text-xs font-mono tracking-wider focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                  />
+                  <Lock className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-3" />
+                </div>
+                {newOwnerPin && confirmNewOwnerPin && newOwnerPin !== confirmNewOwnerPin && (
+                  <p className="text-[11px] text-rose-600 dark:text-rose-400 font-bold mt-1">
+                    Passwords do not match.
+                  </p>
+                )}
+              </div>
+
+              <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsOwnerModalOpen(false)}
+                  className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-semibold cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer"
+                >
+                  Save Owner Password
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

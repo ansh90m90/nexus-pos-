@@ -89,6 +89,19 @@ export const App: React.FC = () => {
       storage.saveCustomers([]);
     }
 
+    // Check if localStorage contains old demo employees (e.g. Connor, Rivera, manager, cashier) and purge them
+    const existingRawEmployees = localStorage.getItem('ospos_employees');
+    if (existingRawEmployees && (
+      existingRawEmployees.includes('Connor') || 
+      existingRawEmployees.includes('Rivera') || 
+      existingRawEmployees.includes('"username":"manager"') || 
+      existingRawEmployees.includes('"username":"cashier"') ||
+      existingRawEmployees.includes('emp-2') || 
+      existingRawEmployees.includes('emp-3')
+    )) {
+      const cleanEmps = storage.getEmployees();
+      storage.saveEmployees(cleanEmps);
+    }
     const loadedItems = storage.getItems();
     const loadedCustomers = storage.getCustomers();
     const loadedSuppliers = storage.getSuppliers();
@@ -521,9 +534,15 @@ export const App: React.FC = () => {
   const handleSaveEmployees = (newEmployees: Employee[]) => {
     storage.saveEmployees(newEmployees);
     setEmployees(newEmployees);
-    if (currentUser && !newEmployees.some(e => e.id === currentUser.id)) {
-      // If current user was deleted, log out to the gateway
-      handleLogout();
+    if (currentUser) {
+      const updatedCurrent = newEmployees.find(e => e.id === currentUser.id);
+      if (updatedCurrent) {
+        setCurrentUser(updatedCurrent);
+        storage.setCurrentUser(updatedCurrent);
+      } else {
+        // If current user was deleted, log out to the gateway
+        handleLogout();
+      }
     }
   };
 
@@ -806,18 +825,20 @@ export const App: React.FC = () => {
       )}
 
       {/* Supervisor Role Override Modal */}
-      <RoleOverrideModal
-        isOpen={overrideModal.isOpen}
-        onClose={() => setOverrideModal(prev => ({ ...prev, isOpen: false }))}
-        requiredRole={overrideModal.requiredRole}
-        actionName={overrideModal.actionName}
-        employees={employees}
-        onAuthorize={authSuper => {
-          setCurrentUser(authSuper);
-          storage.setCurrentUser(authSuper);
-          setCurrentTab(overrideModal.targetTab);
-        }}
-      />
+      {overrideModal.isOpen && (
+        <RoleOverrideModal
+          isOpen={overrideModal.isOpen}
+          onClose={() => setOverrideModal(prev => ({ ...prev, isOpen: false }))}
+          requiredRole={overrideModal.requiredRole}
+          actionName={overrideModal.actionName}
+          employees={employees}
+          onAuthorize={authSuper => {
+            setCurrentUser(authSuper);
+            storage.setCurrentUser(authSuper);
+            setCurrentTab(overrideModal.targetTab);
+          }}
+        />
+      )}
 
       {/* Cloud Sync & Account Modal */}
       <CloudSyncModal
