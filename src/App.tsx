@@ -25,7 +25,11 @@ import {
   logoutUser, 
   pushLocalDataToCloud, 
   pullCloudData, 
-  subscribeToCloudStore 
+  subscribeToCloudStore,
+  deleteCloudItem,
+  deleteCloudCustomer,
+  deleteCloudSupplier,
+  deleteCloudExpense
 } from './services/firebase';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { 
@@ -173,39 +177,16 @@ export const App: React.FC = () => {
     const unsubscribe = subscribeToCloudStore(
       firebaseUser,
       (cloudItems) => {
-        if (cloudItems.length > 0) {
-          // Merge items safely preserving variants and metadata
-          const currentLocalItems = storage.getItems();
-          const merged = cloudItems.map(cItem => {
-            const local = currentLocalItems.find(l => l.id === cItem.id);
-            if (local) {
-              return {
-                ...local,
-                ...cItem,
-                variants: (cItem.variants && cItem.variants.length > 0) ? cItem.variants : (local.variants || []),
-                item_type: cItem.item_type || local.item_type || 'standard',
-                unit_name: cItem.unit_name || local.unit_name || 'unit',
-              };
-            }
-            return cItem;
-          });
-          currentLocalItems.forEach(localItem => {
-            if (!merged.some(m => m.id === localItem.id)) {
-              merged.push(localItem);
-            }
-          });
-          storage.saveItems(merged);
-          setItems(merged);
-          setLastSyncedAt(new Date().toISOString());
-          setSyncState('synced');
-        }
+        // When real-time snapshot fires, sync directly without resurrecting locally deleted items
+        storage.saveItems(cloudItems);
+        setItems(cloudItems);
+        setLastSyncedAt(new Date().toISOString());
+        setSyncState('synced');
       },
       (cloudCustomers) => {
-        if (cloudCustomers.length > 0) {
-          storage.saveCustomers(cloudCustomers);
-          setCustomers(cloudCustomers);
-          setLastSyncedAt(new Date().toISOString());
-        }
+        storage.saveCustomers(cloudCustomers);
+        setCustomers(cloudCustomers);
+        setLastSyncedAt(new Date().toISOString());
       },
       (err) => {
         setSyncError(err);
@@ -393,17 +374,8 @@ export const App: React.FC = () => {
     const updatedItems = storage.getItems();
     setItems(updatedItems);
 
-    if (firebaseUser && autoSyncEnabled && config) {
-      pushLocalDataToCloud(firebaseUser, {
-        items: updatedItems,
-        customers,
-        suppliers,
-        sales,
-        receivings,
-        expenses,
-        cashups,
-        config
-      }).catch(err => console.warn('Background sync item delete failed:', err));
+    if (firebaseUser) {
+      deleteCloudItem(firebaseUser, id).catch(err => console.warn('Background sync item delete failed:', err));
     }
   };
 
@@ -416,6 +388,15 @@ export const App: React.FC = () => {
   const handleUpdateCustomer = (id: string, updates: Partial<Customer>) => {
     storage.updateCustomer(id, updates);
     setCustomers(storage.getCustomers());
+  };
+
+  const handleDeleteCustomer = (id: string) => {
+    storage.deleteCustomer(id);
+    setCustomers(storage.getCustomers());
+
+    if (firebaseUser) {
+      deleteCloudCustomer(firebaseUser, id).catch(err => console.warn('Background sync customer delete failed:', err));
+    }
   };
 
   const handleAddSupplier = (suppData: Omit<Supplier, 'id'>) => {
@@ -432,6 +413,10 @@ export const App: React.FC = () => {
   const handleDeleteSupplier = (id: string) => {
     storage.deleteSupplier(id);
     setSuppliers(storage.getSuppliers());
+
+    if (firebaseUser) {
+      deleteCloudSupplier(firebaseUser, id).catch(err => console.warn('Background sync supplier delete failed:', err));
+    }
   };
 
   const handleAddReceiving = (recData: Omit<Receiving, 'id' | 'receiving_time'>) => {
@@ -450,6 +435,10 @@ export const App: React.FC = () => {
   const handleDeleteExpense = (id: string) => {
     storage.deleteExpense(id);
     setExpenses(storage.getExpenses());
+
+    if (firebaseUser) {
+      deleteCloudExpense(firebaseUser, id).catch(err => console.warn('Background sync expense delete failed:', err));
+    }
   };
 
   const handleAddCashup = (cashupData: Omit<Cashup, 'id'>) => {
@@ -738,6 +727,7 @@ export const App: React.FC = () => {
             config={config}
             onAddCustomer={handleAddCustomer}
             onUpdateCustomer={handleUpdateCustomer}
+            onDeleteCustomer={handleDeleteCustomer}
           />
         )}
 

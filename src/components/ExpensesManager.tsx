@@ -18,6 +18,16 @@ export const ExpensesManager: React.FC<ExpensesManagerProps> = ({
   onDeleteExpense,
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [deleteConfirmExpense, setDeleteConfirmExpense] = useState<Expense | null>(null);
+  const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+
+  const showToast = (text: string, type: 'success' | 'error' = 'success') => {
+    setToastMessage({ text, type });
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 4000);
+  };
+
   const [formData, setFormData] = useState({
     date: new Date().toISOString().slice(0, 10),
     amount: 50.0,
@@ -43,7 +53,7 @@ export const ExpensesManager: React.FC<ExpensesManagerProps> = ({
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.amount <= 0) {
-      alert('Please enter a valid expense amount.');
+      showToast('Please enter a valid expense amount.', 'error');
       return;
     }
 
@@ -52,11 +62,38 @@ export const ExpensesManager: React.FC<ExpensesManagerProps> = ({
       employee_name: `${currentUser.first_name} ${currentUser.last_name}`,
     });
 
+    showToast(`Logged expense: ${formData.description || formData.category}`);
     setIsModalOpen(false);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!deleteConfirmExpense) return;
+    const desc = deleteConfirmExpense.description || deleteConfirmExpense.category;
+    onDeleteExpense(deleteConfirmExpense.id);
+    setDeleteConfirmExpense(null);
+    showToast(`Deleted expense: ${desc}`);
   };
 
   return (
     <div className="max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className={`p-4 rounded-xl border flex items-center justify-between text-xs font-bold shadow-lg animate-in slide-in-from-top-2 duration-150 ${
+          toastMessage.type === 'success'
+            ? 'bg-emerald-950/90 border-emerald-800 text-emerald-200'
+            : 'bg-rose-950/90 border-rose-800 text-rose-200'
+        }`}>
+          <div className="flex items-center gap-2">
+            <span>{toastMessage.text}</span>
+          </div>
+          <button
+            onClick={() => setToastMessage(null)}
+            className="text-slate-400 hover:text-white ml-3 cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
         <div>
           <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
@@ -138,13 +175,9 @@ export const ExpensesManager: React.FC<ExpensesManagerProps> = ({
                     </td>
                     <td className="py-3 px-4 text-right">
                       <button
-                        onClick={() => {
-                          if (window.confirm('Delete this expense record?')) {
-                            onDeleteExpense(e.id);
-                          }
-                        }}
-                        className="p-1.5 bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 rounded-lg transition-colors"
-                        title="Delete"
+                        onClick={() => setDeleteConfirmExpense(e)}
+                        className="p-1.5 bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 rounded-lg transition-colors cursor-pointer"
+                        title="Delete Expense"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -233,18 +266,73 @@ export const ExpensesManager: React.FC<ExpensesManagerProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-semibold"
+                  className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-semibold cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-xs font-bold"
+                  className="px-5 py-2 bg-sky-600 hover:bg-sky-700 active:bg-sky-800 text-white rounded-lg text-xs font-bold transition-colors cursor-pointer"
                 >
                   Save Expense
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Expense Confirmation Modal */}
+      {deleteConfirmExpense && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-xs p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div className="p-6">
+              <div className="w-12 h-12 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center mb-4">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">Delete Expense Record?</h3>
+              <p className="text-xs text-slate-600 dark:text-slate-400 mt-2 leading-relaxed">
+                Are you sure you want to remove this expense record from the ledger?
+              </p>
+
+              <div className="mt-4 p-3 bg-slate-50 dark:bg-slate-850 rounded-xl border border-slate-200 dark:border-slate-800 text-xs space-y-1">
+                <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                  <span>Category:</span>
+                  <span className="font-semibold text-slate-900 dark:text-slate-200">{deleteConfirmExpense.category}</span>
+                </div>
+                {deleteConfirmExpense.description && (
+                  <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                    <span>Description:</span>
+                    <span className="font-semibold text-slate-900 dark:text-slate-200">{deleteConfirmExpense.description}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                  <span>Amount:</span>
+                  <span className="font-mono font-black text-rose-600 dark:text-rose-400">{config.currency_symbol}{deleteConfirmExpense.amount.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                  <span>Date:</span>
+                  <span className="font-mono text-slate-900 dark:text-slate-200">{deleteConfirmExpense.date}</span>
+                </div>
+              </div>
+
+              <div className="mt-6 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setDeleteConfirmExpense(null)}
+                  className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-bold transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmDelete}
+                  className="px-4 py-2 bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white rounded-lg text-xs font-bold transition-colors shadow-sm cursor-pointer"
+                >
+                  Delete Expense
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

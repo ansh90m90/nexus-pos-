@@ -167,6 +167,11 @@ class StorageService {
     return customers[index];
   }
 
+  public deleteCustomer(id: string): void {
+    const customers = this.getCustomers().filter(c => c.id !== id);
+    this.saveCustomers(customers);
+  }
+
   public recordCustomerCreditPayment(
     customerId: string,
     amount: number,

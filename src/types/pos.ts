@@ -7,6 +7,7 @@ export interface ItemVariant {
   cost_price: number;
   unit_price: number;
   quantity: number;
+  reorder_level?: number; // Stock alert threshold for this specific variant
 }
 
 export interface Item {
@@ -123,6 +124,8 @@ export interface ReceivingItem {
   cost_price: number;
   quantity: number;
   total: number;
+  variant_id?: string;
+  variant_name?: string;
 }
 
 export interface Receiving {

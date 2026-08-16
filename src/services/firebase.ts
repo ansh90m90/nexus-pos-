@@ -11,6 +11,7 @@ import {
   doc, 
   getDocFromServer, 
   setDoc, 
+  deleteDoc,
   collection, 
   getDocs, 
   onSnapshot, 
@@ -165,9 +166,22 @@ export async function pushLocalDataToCloud(
       updatedAt: new Date().toISOString()
     }, { merge: true });
 
-    // 2. Batch write items
+    // 2. Batch write items and clean up deleted ones
     let writeCount = 0;
     const batch = writeBatch(db);
+
+    const localItemIds = new Set(data.items.map(i => i.id));
+    try {
+      const existingItemsSnap = await getDocs(collection(db, 'stores', storeId, 'items'));
+      existingItemsSnap.forEach(snap => {
+        if (!localItemIds.has(snap.id)) {
+          batch.delete(snap.ref);
+          writeCount++;
+        }
+      });
+    } catch (e) {
+      console.warn('Could not query existing items for purge:', e);
+    }
 
     data.items.slice(0, 450).forEach(item => {
       const itemRef = doc(db, 'stores', storeId, 'items', item.id);
@@ -192,7 +206,20 @@ export async function pushLocalDataToCloud(
       writeCount++;
     });
 
-    // Batch customers
+    // Batch customers and clean up deleted ones
+    const localCustomerIds = new Set(data.customers.map(c => c.id));
+    try {
+      const existingCustSnap = await getDocs(collection(db, 'stores', storeId, 'customers'));
+      existingCustSnap.forEach(snap => {
+        if (!localCustomerIds.has(snap.id)) {
+          batch.delete(snap.ref);
+          writeCount++;
+        }
+      });
+    } catch (e) {
+      console.warn('Could not query existing customers for purge:', e);
+    }
+
     data.customers.slice(0, 100).forEach(c => {
       const custRef = doc(db, 'stores', storeId, 'customers', c.id);
       batch.set(custRef, {
@@ -321,25 +348,25 @@ export function subscribeToCloudStore(
       const cloudItems: Item[] = [];
       snapshot.forEach(docSnap => {
         const d = docSnap.data();
-        cloudItems.push({
-          id: docSnap.id,
-          item_number: d.barcode || d.item_number || '',
-          name: d.name || '',
-          category: d.category || 'General',
-          cost_price: Number(d.cost_price) || 0,
-          unit_price: Number(d.unit_price) || 0,
-          quantity: Number(d.quantity) || 0,
-          reorder_level: Number(d.reorder_level) || 5,
-          description: d.description || '',
-          item_type: d.item_type || 'standard',
-          unit_name: d.unit_name || (d.item_type === 'weighted' ? 'kg' : 'unit'),
-          variants: Array.isArray(d.variants) ? d.variants : [],
-          is_deleted: Boolean(d.is_deleted),
-        });
+        if (!d.is_deleted) {
+          cloudItems.push({
+            id: docSnap.id,
+            item_number: d.barcode || d.item_number || '',
+            name: d.name || '',
+            category: d.category || 'General',
+            cost_price: Number(d.cost_price) || 0,
+            unit_price: Number(d.unit_price) || 0,
+            quantity: Number(d.quantity) || 0,
+            reorder_level: Number(d.reorder_level) || 5,
+            description: d.description || '',
+            item_type: d.item_type || 'standard',
+            unit_name: d.unit_name || (d.item_type === 'weighted' ? 'kg' : 'unit'),
+            variants: Array.isArray(d.variants) ? d.variants : [],
+            is_deleted: false,
+          });
+        }
       });
-      if (cloudItems.length > 0) {
-        onItemsUpdate(cloudItems);
-      }
+      onItemsUpdate(cloudItems);
     },
     (error) => {
       console.warn('Realtime items listener error:', error);
@@ -365,9 +392,7 @@ export function subscribeToCloudStore(
           total_spent: d.total_spent || d.balance || 0
         });
       });
-      if (cloudCustomers.length > 0) {
-        onCustomersUpdate(cloudCustomers);
-      }
+      onCustomersUpdate(cloudCustomers);
     },
     (error) => {
       console.warn('Realtime customers listener error:', error);
@@ -379,4 +404,52 @@ export function subscribeToCloudStore(
     unsubItems();
     unsubCustomers();
   };
+}
+
+// Delete item document from Firestore
+export async function deleteCloudItem(user: User, itemId: string): Promise<void> {
+  const storeId = getStoreId(user);
+  const path = `stores/${storeId}/items/${itemId}`;
+  try {
+    const itemRef = doc(db, 'stores', storeId, 'items', itemId);
+    await deleteDoc(itemRef);
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, path);
+  }
+}
+
+// Delete customer document from Firestore
+export async function deleteCloudCustomer(user: User, customerId: string): Promise<void> {
+  const storeId = getStoreId(user);
+  const path = `stores/${storeId}/customers/${customerId}`;
+  try {
+    const custRef = doc(db, 'stores', storeId, 'customers', customerId);
+    await deleteDoc(custRef);
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, path);
+  }
+}
+
+// Delete supplier document from Firestore
+export async function deleteCloudSupplier(user: User, supplierId: string): Promise<void> {
+  const storeId = getStoreId(user);
+  const path = `stores/${storeId}/suppliers/${supplierId}`;
+  try {
+    const supRef = doc(db, 'stores', storeId, 'suppliers', supplierId);
+    await deleteDoc(supRef);
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, path);
+  }
+}
+
+// Delete expense document from Firestore
+export async function deleteCloudExpense(user: User, expenseId: string): Promise<void> {
+  const storeId = getStoreId(user);
+  const path = `stores/${storeId}/expenses/${expenseId}`;
+  try {
+    const expRef = doc(db, 'stores', storeId, 'expenses', expenseId);
+    await deleteDoc(expRef);
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, path);
+  }
 }

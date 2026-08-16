@@ -4,6 +4,7 @@ import {
   Search, 
   Plus, 
   Edit3, 
+  Trash2,
   Phone, 
   Mail, 
   Award, 
@@ -25,6 +26,7 @@ interface CustomersManagerProps {
   currentUserName?: string;
   onAddCustomer: (customer: Omit<Customer, 'id' | 'points' | 'total_spent'>) => Customer;
   onUpdateCustomer: (id: string, updates: Partial<Customer>) => void;
+  onDeleteCustomer: (id: string) => void;
 }
 
 export const CustomersManager: React.FC<CustomersManagerProps> = ({
@@ -34,11 +36,25 @@ export const CustomersManager: React.FC<CustomersManagerProps> = ({
   currentUserName = 'Staff Member',
   onAddCustomer,
   onUpdateCustomer,
+  onDeleteCustomer,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [balanceFilter, setBalanceFilter] = useState<'all' | 'due_only'>('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCustomerId, setEditingCustomerId] = useState<string | null>(null);
+
+  // Custom Delete Customer Confirmation Modal State
+  const [deleteConfirmCust, setDeleteConfirmCust] = useState<Customer | null>(null);
+
+  // Toast feedback state
+  const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+
+  const showToast = (text: string, type: 'success' | 'error' = 'success') => {
+    setToastMessage({ text, type });
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 4000);
+  };
 
   // History Drawer State
   const [viewHistoryCust, setViewHistoryCust] = useState<Customer | null>(null);
@@ -125,17 +141,27 @@ export const CustomersManager: React.FC<CustomersManagerProps> = ({
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.first_name.trim()) {
-      alert('First name is required.');
+      showToast('First name is required.', 'error');
       return;
     }
 
     if (editingCustomerId) {
       onUpdateCustomer(editingCustomerId, formData);
+      showToast(`Updated customer: ${formData.first_name} ${formData.last_name}`);
     } else {
       onAddCustomer(formData);
+      showToast(`Added customer: ${formData.first_name} ${formData.last_name}`);
     }
 
     setIsModalOpen(false);
+  };
+
+  const handleConfirmDeleteCustomer = () => {
+    if (!deleteConfirmCust) return;
+    const name = `${deleteConfirmCust.first_name} ${deleteConfirmCust.last_name}`.trim();
+    onDeleteCustomer(deleteConfirmCust.id);
+    setDeleteConfirmCust(null);
+    showToast(`Deleted customer: ${name}`);
   };
 
   const customerPurchases = useMemo(() => {
@@ -145,6 +171,25 @@ export const CustomersManager: React.FC<CustomersManagerProps> = ({
 
   return (
     <div className="max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className={`p-4 rounded-xl border flex items-center justify-between text-xs font-bold shadow-lg animate-in slide-in-from-top-2 duration-150 ${
+          toastMessage.type === 'success'
+            ? 'bg-emerald-950/90 border-emerald-800 text-emerald-200'
+            : 'bg-rose-950/90 border-rose-800 text-rose-200'
+        }`}>
+          <div className="flex items-center gap-2">
+            <span>{toastMessage.text}</span>
+          </div>
+          <button
+            onClick={() => setToastMessage(null)}
+            className="text-slate-400 hover:text-white ml-3 cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* Top Banner / Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
         <div>
@@ -396,10 +441,18 @@ export const CustomersManager: React.FC<CustomersManagerProps> = ({
 
                           <button
                             onClick={() => handleOpenEdit(c)}
-                            className="p-1.5 bg-sky-50 dark:bg-sky-950/60 hover:bg-sky-100 dark:hover:bg-sky-900/60 text-sky-700 dark:text-sky-400 rounded-lg transition-colors"
+                            className="p-1.5 bg-sky-50 dark:bg-sky-950/60 hover:bg-sky-100 dark:hover:bg-sky-900/60 text-sky-700 dark:text-sky-400 rounded-lg transition-colors cursor-pointer"
                             title="Edit Customer"
                           >
                             <Edit3 className="w-3.5 h-3.5" />
+                          </button>
+
+                          <button
+                            onClick={() => setDeleteConfirmCust(c)}
+                            className="p-1.5 bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 rounded-lg transition-colors cursor-pointer"
+                            title="Delete Customer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </td>
@@ -634,10 +687,72 @@ export const CustomersManager: React.FC<CustomersManagerProps> = ({
             <div className="bg-slate-50 dark:bg-slate-950 px-5 py-3 border-t border-slate-200 dark:border-slate-800 flex justify-end">
               <button
                 onClick={() => setViewHistoryCust(null)}
-                className="px-4 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-semibold"
+                className="px-4 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-semibold cursor-pointer"
               >
                 Close
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Customer Confirmation Modal */}
+      {deleteConfirmCust && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-xs p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div className="p-6">
+              <div className="w-12 h-12 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center mb-4">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">Delete Customer Account?</h3>
+              <p className="text-xs text-slate-600 dark:text-slate-400 mt-2 leading-relaxed">
+                Are you sure you want to remove customer <span className="font-bold text-slate-900 dark:text-white">{deleteConfirmCust.first_name} {deleteConfirmCust.last_name}</span> from the CRM database?
+              </p>
+
+              <div className="mt-4 p-3 bg-slate-50 dark:bg-slate-850 rounded-xl border border-slate-200 dark:border-slate-800 text-xs space-y-1.5">
+                {deleteConfirmCust.company_name && (
+                  <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                    <span>Company:</span>
+                    <span className="font-semibold text-slate-900 dark:text-slate-200">{deleteConfirmCust.company_name}</span>
+                  </div>
+                )}
+                {deleteConfirmCust.phone_number && (
+                  <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                    <span>Phone:</span>
+                    <span className="font-mono text-slate-900 dark:text-slate-200">{deleteConfirmCust.phone_number}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                  <span>Outstanding Credit Balance:</span>
+                  <span className={`font-mono font-bold ${
+                    (deleteConfirmCust.credit_balance || 0) > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-slate-200'
+                  }`}>
+                    {config.currency_symbol}{(deleteConfirmCust.credit_balance || 0).toFixed(2)}
+                  </span>
+                </div>
+                {(deleteConfirmCust.credit_balance || 0) > 0 && (
+                  <p className="text-[11px] text-rose-600 dark:text-rose-400 font-semibold pt-1">
+                    Warning: This customer still has an unpaid outstanding credit balance!
+                  </p>
+                )}
+              </div>
+
+              <div className="mt-6 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setDeleteConfirmCust(null)}
+                  className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-bold transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmDeleteCustomer}
+                  className="px-4 py-2 bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white rounded-lg text-xs font-bold transition-colors shadow-sm cursor-pointer"
+                >
+                  Delete Customer
+                </button>
+              </div>
             </div>
           </div>
         </div>

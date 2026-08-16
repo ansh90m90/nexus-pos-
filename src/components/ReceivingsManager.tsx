@@ -214,9 +214,13 @@ export const ReceivingsManager: React.FC<ReceivingsManagerProps> = ({
                                 key={v.id}
                                 type="button"
                                 onClick={() => addItemToReceiving(item, v)}
-                                className="px-2 py-1 bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/60 dark:hover:bg-purple-900/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 rounded text-[11px] font-semibold transition-colors flex items-center gap-1"
+                                className="px-2 py-1 bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/60 dark:hover:bg-purple-900/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 rounded text-[11px] font-semibold transition-colors flex items-center gap-1.5"
+                                title={`Current Stock: ${v.quantity ?? 0}`}
                               >
                                 <span>{v.name}</span>
+                                <span className="text-[10px] font-bold text-purple-900 dark:text-purple-200 bg-purple-200/70 dark:bg-purple-900/70 px-1 rounded">
+                                  {v.quantity ?? 0}
+                                </span>
                                 <span className="font-mono text-[10px] opacity-75">({config.currency_symbol}{v.cost_price?.toFixed(2) || item.cost_price.toFixed(2)})</span>
                               </button>
                             ))}
