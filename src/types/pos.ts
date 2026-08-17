@@ -69,6 +69,10 @@ export interface Supplier {
   address_1: string;
   city: string;
   account_number: string;
+  credit_balance?: number; // Outstanding payable balance owed to supplier (Dene Hain)
+  credit_limit?: number;   // Maximum credit limit with supplier
+  credit_ledger?: CreditLedgerEntry[];
+  comments?: string;
 }
 
 export interface SaleItem {
@@ -187,7 +191,13 @@ export interface StoreConfig {
   phone: string;
   email: string;
   website: string;
+  country_code?: string;
+  country_name?: string;
+  currency_code?: string;
   currency_symbol: string;
+  currency_position?: 'before' | 'after';
+  number_format?: 'standard' | 'indian';
+  tax_name?: string;
   default_tax_rate: number;
   receipt_header: string;
   receipt_footer: string;
@@ -196,6 +206,7 @@ export interface StoreConfig {
   enable_loyalty?: boolean;
   loyalty_points_ratio?: number;
   theme: 'light' | 'dark';
+  color_palette?: 'palette-1' | 'palette-2' | 'palette-3' | 'palette-4';
   accent_color?: 'sky' | 'emerald' | 'indigo' | 'amber' | 'slate';
   upi_id?: string;
   upi_payee_name?: string;

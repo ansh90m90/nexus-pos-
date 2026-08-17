@@ -729,6 +729,8 @@ export const ItemsManager: React.FC<ItemsManagerProps> = ({
                   let maxPrice = item.unit_price;
                   let isOutOfStock = item.quantity <= 0;
                   let isLowStock = item.quantity > 0 && item.quantity <= item.reorder_level;
+                  let minMargin = '0';
+                  let maxMargin = '0';
 
                   if (hasVariants) {
                     const costs = item.variants!.map(v => Number(v.cost_price) || 0);
@@ -737,6 +739,14 @@ export const ItemsManager: React.FC<ItemsManagerProps> = ({
                     maxCost = Math.max(...costs);
                     minPrice = Math.min(...prices);
                     maxPrice = Math.max(...prices);
+
+                    const variantMargins = item.variants!.map(v => {
+                      const p = Number(v.unit_price) || 0;
+                      const c = Number(v.cost_price) || 0;
+                      return p > 0 ? ((p - c) / p) * 100 : 0;
+                    });
+                    minMargin = Math.min(...variantMargins).toFixed(0);
+                    maxMargin = Math.max(...variantMargins).toFixed(0);
 
                     isOutOfStock = item.variants!.every(v => (v.quantity ?? 0) <= 0);
                     isLowStock = item.variants!.some(v => (v.quantity ?? 0) > 0 && (v.quantity ?? 0) <= (v.reorder_level ?? 5));
@@ -749,17 +759,15 @@ export const ItemsManager: React.FC<ItemsManagerProps> = ({
                   return (
                     <React.Fragment key={item.id}>
                       {/* Main Product Row */}
-                      <tr className={`hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors ${
-                        hasVariants ? 'bg-purple-50/20 dark:bg-purple-950/10 font-medium' : ''
-                      }`}>
+                      <tr className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors">
                         {/* Expand / Collapse Icon for Variant Folders */}
                         <td className="py-3 px-3 text-center">
                           {hasVariants ? (
                             <button
                               type="button"
                               onClick={() => toggleExpand(item.id)}
-                              className="p-1 text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/40 rounded transition-colors"
-                              title={isExpanded ? 'Collapse variant files' : 'Expand variant files'}
+                              className="p-1 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors"
+                              title={isExpanded ? 'Collapse variant options' : 'Expand variant options'}
                             >
                               {isExpanded ? (
                                 <ChevronDown className="w-4 h-4" />
@@ -780,24 +788,18 @@ export const ItemsManager: React.FC<ItemsManagerProps> = ({
                         {/* Product Title */}
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-2">
-                            {hasVariants ? (
-                              <div className="p-1 rounded bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300">
-                                <Folder className="w-3.5 h-3.5" />
-                              </div>
-                            ) : (
-                              <div className="p-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
-                                <Package className="w-3.5 h-3.5" />
-                              </div>
-                            )}
+                            <div className="p-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                              {hasVariants ? <Layers className="w-3.5 h-3.5" /> : <Package className="w-3.5 h-3.5" />}
+                            </div>
 
                             <span className="font-bold text-slate-900 dark:text-slate-100 text-xs sm:text-sm">
                               {item.name}
                             </span>
 
                             {hasVariants ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/60 text-purple-800 dark:text-purple-200 text-[10px] font-bold border border-purple-200 dark:border-purple-800">
-                                <Layers className="w-3 h-3" />
-                                <span>{item.variants?.length} Variant Files</span>
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-semibold border border-slate-200 dark:border-slate-700">
+                                <Layers className="w-3 h-3 opacity-75" />
+                                <span>{item.variants?.length} Options</span>
                               </span>
                             ) : isWeighted ? (
                               <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 text-[10px] font-bold border border-amber-200 dark:border-amber-800">
@@ -824,7 +826,7 @@ export const ItemsManager: React.FC<ItemsManagerProps> = ({
                                         ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border-rose-300 dark:border-rose-800 font-bold'
                                         : isVLow
                                         ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-800 font-bold'
-                                        : 'bg-white dark:bg-slate-800 text-purple-900 dark:text-purple-200 border-purple-200 dark:border-purple-800'
+                                        : 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border-slate-200 dark:border-slate-700'
                                     }`}
                                     title={`Click to adjust stock for ${v.name}: ${v.quantity ?? 0} in stock. Price: ${config.currency_symbol}${v.unit_price}`}
                                   >
@@ -867,9 +869,9 @@ export const ItemsManager: React.FC<ItemsManagerProps> = ({
                         <td className="py-3 px-4 text-right font-mono font-bold text-slate-900 dark:text-white">
                           {hasVariants ? (
                             minPrice === maxPrice ? (
-                              <span className="text-purple-700 dark:text-purple-300">{config.currency_symbol}{minPrice.toFixed(2)}</span>
+                              <span>{config.currency_symbol}{minPrice.toFixed(2)}</span>
                             ) : (
-                              <span className="text-purple-700 dark:text-purple-300">{config.currency_symbol}{minPrice.toFixed(2)} – {config.currency_symbol}{maxPrice.toFixed(2)}</span>
+                              <span>{config.currency_symbol}{minPrice.toFixed(2)} – {config.currency_symbol}{maxPrice.toFixed(2)}</span>
                             )
                           ) : (
                             <span>
@@ -882,9 +884,11 @@ export const ItemsManager: React.FC<ItemsManagerProps> = ({
                         {/* Margin */}
                         <td className="py-3 px-4 text-right font-mono text-emerald-600 dark:text-emerald-400 font-bold">
                           {hasVariants ? (
-                            <span className="text-[11px] text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/60 px-1.5 py-0.5 rounded border border-purple-200 dark:border-purple-800">
-                              Variant Based
-                            </span>
+                            minMargin === maxMargin ? (
+                              <span>{minMargin}%</span>
+                            ) : (
+                              <span>{minMargin}% – {maxMargin}%</span>
+                            )
                           ) : (
                             <span>{singleMargin}%</span>
                           )}
@@ -905,7 +909,7 @@ export const ItemsManager: React.FC<ItemsManagerProps> = ({
                               {item.quantity} {isWeighted ? (item.unit_name || 'kg') : ''}
                             </span>
                             {hasVariants && (
-                              <span className="text-[9px] text-purple-600 dark:text-purple-400 font-semibold">
+                              <span className="text-[9px] text-slate-500 dark:text-slate-400 font-semibold">
                                 Total across {item.variants?.length} files
                               </span>
                             )}
@@ -924,7 +928,7 @@ export const ItemsManager: React.FC<ItemsManagerProps> = ({
                             </button>
                             <button
                               onClick={() => handleOpenEdit(item)}
-                              className="p-1.5 bg-sky-50 dark:bg-sky-950/60 hover:bg-sky-100 dark:hover:bg-sky-900/60 text-sky-700 dark:text-sky-400 rounded-lg transition-colors"
+                              className="p-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg transition-colors"
                               title="Edit Product / Folder"
                             >
                               <Edit3 className="w-3.5 h-3.5" />
@@ -942,12 +946,12 @@ export const ItemsManager: React.FC<ItemsManagerProps> = ({
 
                       {/* Expanded Sub-Table for Variant Files */}
                       {hasVariants && isExpanded && (
-                        <tr className="bg-slate-100/60 dark:bg-slate-850/60 border-y border-purple-200/50 dark:border-purple-900/40">
+                        <tr className="bg-slate-50/80 dark:bg-slate-850/60 border-y border-slate-200 dark:border-slate-800">
                           <td colSpan={9} className="p-4 pl-12">
-                            <div className="bg-white dark:bg-slate-900 rounded-xl border border-purple-200 dark:border-purple-800/80 p-3.5 shadow-sm space-y-3">
+                            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-3.5 shadow-xs space-y-3">
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
-                                  <Folder className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                                  <Folder className="w-4 h-4 text-slate-600 dark:text-slate-400" />
                                   <span className="font-bold text-xs text-slate-900 dark:text-white">
                                     Files inside "{item.name}" Folder ({item.variants?.length} variants)
                                   </span>
@@ -955,7 +959,7 @@ export const ItemsManager: React.FC<ItemsManagerProps> = ({
                                 <button
                                   type="button"
                                   onClick={() => handleOpenEdit(item)}
-                                  className="text-[11px] text-purple-600 dark:text-purple-400 hover:underline font-semibold flex items-center gap-1"
+                                  className="text-[11px] text-slate-700 dark:text-slate-300 hover:underline font-semibold flex items-center gap-1"
                                 >
                                   <Plus className="w-3 h-3" />
                                   <span>Manage / Add Variant Files</span>
@@ -964,7 +968,7 @@ export const ItemsManager: React.FC<ItemsManagerProps> = ({
 
                               <div className="overflow-x-auto">
                                 <table className="w-full text-xs">
-                                  <thead className="bg-purple-50/50 dark:bg-purple-950/30 text-purple-900 dark:text-purple-200 font-bold border-b border-purple-100 dark:border-purple-900/50">
+                                  <thead className="bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 font-bold border-b border-slate-200 dark:border-slate-700">
                                     <tr>
                                       <th className="py-2 px-3 text-left">Variant File</th>
                                       <th className="py-2 px-3 text-left">Barcode / SKU</th>
@@ -985,9 +989,9 @@ export const ItemsManager: React.FC<ItemsManagerProps> = ({
                                       const isVLow = !isVOut && (v.quantity ?? 0) <= (v.reorder_level ?? 5);
 
                                       return (
-                                        <tr key={v.id} className="hover:bg-purple-50/30 dark:hover:bg-purple-950/20">
+                                        <tr key={v.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
                                           <td className="py-2.5 px-3 font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                                            <FileText className="w-3 h-3 text-purple-500" />
+                                            <FileText className="w-3 h-3 opacity-70" />
                                             <span>{v.name}</span>
                                           </td>
                                           <td className="py-2.5 px-3 font-mono text-slate-600 dark:text-slate-400">
@@ -996,7 +1000,7 @@ export const ItemsManager: React.FC<ItemsManagerProps> = ({
                                           <td className="py-2.5 px-3 text-right font-mono text-slate-600 dark:text-slate-400">
                                             {config.currency_symbol}{(v.cost_price || 0).toFixed(2)}
                                           </td>
-                                          <td className="py-2.5 px-3 text-right font-mono font-bold text-purple-700 dark:text-purple-300">
+                                          <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-900 dark:text-white">
                                             {config.currency_symbol}{v.unit_price.toFixed(2)}
                                           </td>
                                           <td className="py-2.5 px-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
@@ -1008,7 +1012,7 @@ export const ItemsManager: React.FC<ItemsManagerProps> = ({
                                                 ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
                                                 : isVLow
                                                 ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
-                                                : 'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300'
+                                                : 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200'
                                             }`}>
                                               {v.quantity ?? 0} {item.unit_name || 'units'}
                                             </span>
@@ -1020,7 +1024,7 @@ export const ItemsManager: React.FC<ItemsManagerProps> = ({
                                             <button
                                               type="button"
                                               onClick={() => handleOpenAdjustModal(item, v.id)}
-                                              className="px-2 py-1 bg-purple-50 hover:bg-purple-100 dark:bg-purple-900/40 dark:hover:bg-purple-800/60 text-purple-700 dark:text-purple-300 rounded text-[10px] font-bold border border-purple-200 dark:border-purple-700 transition-colors"
+                                              className="px-2 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded text-[10px] font-bold border border-slate-200 dark:border-slate-700 transition-colors"
                                             >
                                               Adjust Qty
                                             </button>
@@ -1051,7 +1055,7 @@ export const ItemsManager: React.FC<ItemsManagerProps> = ({
             <div className="bg-slate-900 dark:bg-slate-950 px-5 py-3.5 text-white flex items-center justify-between border-b border-slate-800 shrink-0">
               <div className="flex items-center gap-2">
                 {productStructureMode === 'variants' ? (
-                  <Folder className="w-4 h-4 text-purple-400" />
+                  <Folder className="w-4 h-4 text-sky-400" />
                 ) : (
                   <Package className="w-4 h-4 text-sky-400" />
                 )}
@@ -1076,16 +1080,16 @@ export const ItemsManager: React.FC<ItemsManagerProps> = ({
                   <button
                     type="button"
                     onClick={() => handleSwitchStructureMode('single')}
-                    className={`p-3.5 rounded-xl border text-left text-xs transition-all flex items-start gap-3 ${
+                    className={`p-3.5 rounded-xl border text-left text-xs transition-all flex items-start gap-3 cursor-pointer ${
                       productStructureMode === 'single'
-                        ? 'border-sky-600 bg-sky-50/80 dark:bg-sky-950/60 text-sky-900 dark:text-sky-200 ring-2 ring-sky-500 shadow-xs'
-                        : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                        ? 'border-sky-600 dark:border-sky-500 bg-sky-50 dark:bg-sky-950/60 text-sky-950 dark:text-sky-100 ring-2 ring-sky-500 shadow-xs'
+                        : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-850 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
                     }`}
                   >
-                    <Package className="w-5 h-5 shrink-0 text-sky-600 dark:text-sky-400 mt-0.5" />
+                    <Package className={`w-5 h-5 shrink-0 mt-0.5 ${productStructureMode === 'single' ? 'text-sky-600 dark:text-sky-400' : 'text-slate-400'}`} />
                     <div>
                       <span className="font-bold block text-sm">Single Standalone Product</span>
-                      <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                      <span className={`text-[11px] ${productStructureMode === 'single' ? 'text-sky-800 dark:text-sky-300' : 'text-slate-500 dark:text-slate-400'}`}>
                         Has its own single SKU, cost, price, stock count, and stock alert.
                       </span>
                     </div>
@@ -1094,16 +1098,16 @@ export const ItemsManager: React.FC<ItemsManagerProps> = ({
                   <button
                     type="button"
                     onClick={() => handleSwitchStructureMode('variants')}
-                    className={`p-3.5 rounded-xl border text-left text-xs transition-all flex items-start gap-3 ${
+                    className={`p-3.5 rounded-xl border text-left text-xs transition-all flex items-start gap-3 cursor-pointer ${
                       productStructureMode === 'variants'
-                        ? 'border-purple-600 bg-purple-50/80 dark:bg-purple-950/60 text-purple-900 dark:text-purple-200 ring-2 ring-purple-500 shadow-xs'
-                        : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                        ? 'border-sky-600 dark:border-sky-500 bg-sky-50 dark:bg-sky-950/60 text-sky-950 dark:text-sky-100 ring-2 ring-sky-500 shadow-xs'
+                        : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-850 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
                     }`}
                   >
-                    <Folder className="w-5 h-5 shrink-0 text-purple-600 dark:text-purple-400 mt-0.5" />
+                    <Folder className={`w-5 h-5 shrink-0 mt-0.5 ${productStructureMode === 'variants' ? 'text-sky-600 dark:text-sky-400' : 'text-slate-400'}`} />
                     <div>
                       <span className="font-bold block text-sm">📁 Master Product Folder (With Variants)</span>
-                      <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                      <span className={`text-[11px] ${productStructureMode === 'variants' ? 'text-sky-800 dark:text-sky-300' : 'text-slate-500 dark:text-slate-400'}`}>
                         Folder container. Pricing, cost, stock, and barcodes are managed on each variant file.
                       </span>
                     </div>
@@ -1113,11 +1117,11 @@ export const ItemsManager: React.FC<ItemsManagerProps> = ({
 
               {/* Master Folder Notice */}
               {productStructureMode === 'variants' && (
-                <div className="p-3.5 bg-purple-50/90 dark:bg-purple-950/50 rounded-xl border border-purple-200 dark:border-purple-800/80 flex items-start gap-3 text-xs text-purple-900 dark:text-purple-200">
-                  <Folder className="w-5 h-5 shrink-0 text-purple-600 dark:text-purple-400 mt-0.5" />
+                <div className="p-3.5 bg-sky-50 dark:bg-sky-950/40 rounded-xl border border-sky-200 dark:border-sky-900/60 flex items-start gap-3 text-xs text-sky-950 dark:text-sky-100">
+                  <Folder className="w-5 h-5 shrink-0 text-sky-600 dark:text-sky-400 mt-0.5" />
                   <div>
                     <p className="font-bold">Folder Container Mode Active</p>
-                    <p className="text-[11px] text-purple-800/80 dark:text-purple-300/80 mt-0.5 leading-relaxed">
+                    <p className="text-[11px] text-sky-800 dark:text-sky-300 mt-0.5 leading-relaxed">
                       The main product holds the product title, category, and unit type. It has no individual price, cost, or stock limit. Instead, all pricing, wholesale costs, independent stock inventories, barcodes, and stock alerts are defined per variant file below.
                     </p>
                   </div>
@@ -1291,11 +1295,11 @@ export const ItemsManager: React.FC<ItemsManagerProps> = ({
 
               {/* MASTER FOLDER VARIANT FILES SECTION */}
               {productStructureMode === 'variants' && (
-                <div className="bg-purple-50/40 dark:bg-purple-950/20 p-4 rounded-xl border border-purple-200 dark:border-purple-800/80 space-y-4">
+                <div className="bg-slate-50 dark:bg-slate-850 p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-4">
                   {/* Variant Header & Preset Actions */}
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-purple-200 dark:border-purple-800/60 pb-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
                     <div className="flex items-center gap-2">
-                      <Layers className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                      <Layers className="w-4 h-4 text-slate-700 dark:text-slate-300" />
                       <div>
                         <span className="text-xs font-bold text-slate-900 dark:text-white block">
                           Variant Files ({formData.variants.length} Files in this Folder)
@@ -1366,7 +1370,7 @@ export const ItemsManager: React.FC<ItemsManagerProps> = ({
                       <button
                         type="button"
                         onClick={handleAddVariant}
-                        className="flex items-center gap-1 px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-semibold shadow-xs"
+                        className="flex items-center gap-1 px-3 py-1 bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-slate-200 text-white dark:text-slate-900 rounded-lg text-xs font-semibold shadow-xs"
                       >
                         <Plus className="w-3.5 h-3.5" />
                         <span>Add Variant File</span>
@@ -1376,8 +1380,8 @@ export const ItemsManager: React.FC<ItemsManagerProps> = ({
 
                   {/* Variant Files List */}
                   {formData.variants.length === 0 ? (
-                    <div className="p-6 text-center border-2 border-dashed border-purple-200 dark:border-purple-800/80 rounded-xl bg-white dark:bg-slate-900">
-                      <Folder className="w-8 h-8 mx-auto text-purple-400 mb-2" />
+                    <div className="p-6 text-center border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900">
+                      <Folder className="w-8 h-8 mx-auto text-slate-400 mb-2" />
                       <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
                         This Product Folder is Currently Empty
                       </p>
@@ -1387,7 +1391,7 @@ export const ItemsManager: React.FC<ItemsManagerProps> = ({
                       <button
                         type="button"
                         onClick={handleAddVariant}
-                        className="inline-flex items-center gap-1 px-4 py-1.5 bg-purple-600 text-white rounded-lg text-xs font-bold shadow-xs hover:bg-purple-700"
+                        className="inline-flex items-center gap-1 px-4 py-1.5 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-lg text-xs font-bold shadow-xs hover:bg-slate-800 dark:hover:bg-slate-200"
                       >
                         <Plus className="w-3.5 h-3.5" />
                         <span>Add First Variant File</span>
@@ -1403,13 +1407,13 @@ export const ItemsManager: React.FC<ItemsManagerProps> = ({
                         return (
                           <div 
                             key={v.id || idx} 
-                            className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-purple-200/80 dark:border-purple-800/70 shadow-xs space-y-2.5"
+                            className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-2.5"
                           >
                             <div className="flex items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-2">
                               <div className="flex items-center gap-2">
-                                <FileText className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                                <FileText className="w-3.5 h-3.5 opacity-70" />
                                 <span className="text-xs font-bold text-slate-900 dark:text-white">
-                                  File #{idx + 1}: <span className="text-purple-700 dark:text-purple-300 font-mono">{v.name || 'Untitled Variant'}</span>
+                                  File #{idx + 1}: <span className="font-mono text-slate-800 dark:text-slate-200">{v.name || 'Untitled Variant'}</span>
                                 </span>
                                 <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded">
                                   {marginPercent}% Margin
@@ -1438,7 +1442,7 @@ export const ItemsManager: React.FC<ItemsManagerProps> = ({
                                   placeholder="e.g. 500g Pack / Large / Red"
                                   value={v.name}
                                   onChange={e => handleUpdateVariant(idx, { name: e.target.value })}
-                                  className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 text-xs font-semibold text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-1 focus:ring-purple-500 focus:outline-none"
+                                  className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 text-xs font-semibold text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-1 focus:ring-slate-400 focus:outline-none"
                                 />
                               </div>
 
@@ -1453,7 +1457,7 @@ export const ItemsManager: React.FC<ItemsManagerProps> = ({
                                   placeholder={`${formData.item_number || 'SKU'}-V${idx + 1}`}
                                   value={v.item_number || ''}
                                   onChange={e => handleUpdateVariant(idx, { item_number: e.target.value })}
-                                  className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 text-xs font-mono text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-1 focus:ring-purple-500 focus:outline-none"
+                                  className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 text-xs font-mono text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-1 focus:ring-slate-400 focus:outline-none"
                                 />
                               </div>
 
@@ -1469,13 +1473,13 @@ export const ItemsManager: React.FC<ItemsManagerProps> = ({
                                   required
                                   value={v.cost_price ?? 0}
                                   onChange={e => handleUpdateVariant(idx, { cost_price: parseFloat(e.target.value) || 0 })}
-                                  className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 text-xs font-mono text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-1 focus:ring-purple-500 focus:outline-none"
+                                  className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 text-xs font-mono text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-1 focus:ring-slate-400 focus:outline-none"
                                 />
                               </div>
 
                               {/* Retail Price */}
                               <div>
-                                <label className="text-[10px] font-bold text-purple-700 dark:text-purple-300 block mb-0.5">
+                                <label className="text-[10px] font-bold text-slate-800 dark:text-slate-200 block mb-0.5">
                                   Price ({config.currency_symbol}) *
                                 </label>
                                 <input
@@ -1485,7 +1489,7 @@ export const ItemsManager: React.FC<ItemsManagerProps> = ({
                                   required
                                   value={v.unit_price}
                                   onChange={e => handleUpdateVariant(idx, { unit_price: parseFloat(e.target.value) || 0 })}
-                                  className="w-full px-2.5 py-1.5 bg-purple-50/50 dark:bg-purple-950/40 text-xs font-mono font-bold text-purple-900 dark:text-purple-100 border border-purple-300 dark:border-purple-700 rounded-lg focus:ring-1 focus:ring-purple-500 focus:outline-none"
+                                  className="w-full px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 text-xs font-mono font-bold text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-1 focus:ring-slate-400 focus:outline-none"
                                 />
                               </div>
                             </div>
@@ -1501,7 +1505,7 @@ export const ItemsManager: React.FC<ItemsManagerProps> = ({
                                   min="0"
                                   value={v.quantity ?? 0}
                                   onChange={e => handleUpdateVariant(idx, { quantity: parseInt(e.target.value) || 0 })}
-                                  className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 text-xs font-mono font-bold text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-1 focus:ring-purple-500 focus:outline-none"
+                                  className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 text-xs font-mono font-bold text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-1 focus:ring-slate-400 focus:outline-none"
                                 />
                               </div>
 
@@ -1515,7 +1519,7 @@ export const ItemsManager: React.FC<ItemsManagerProps> = ({
                                   min="0"
                                   value={v.reorder_level ?? 5}
                                   onChange={e => handleUpdateVariant(idx, { reorder_level: parseInt(e.target.value) || 0 })}
-                                  className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 text-xs font-mono text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-1 focus:ring-purple-500 focus:outline-none"
+                                  className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 text-xs font-mono text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-1 focus:ring-slate-400 focus:outline-none"
                                 />
                               </div>
                             </div>
@@ -1527,7 +1531,7 @@ export const ItemsManager: React.FC<ItemsManagerProps> = ({
 
                   {/* Aggregate Summary Box */}
                   {formData.variants.length > 0 && (
-                    <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-purple-200 dark:border-purple-800 flex flex-wrap items-center justify-between gap-3 text-xs">
+                    <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
                       <div className="flex items-center gap-4">
                         <div>
                           <span className="text-[10px] text-slate-500 dark:text-slate-400 block">Total Combined Stock</span>
@@ -1537,12 +1541,12 @@ export const ItemsManager: React.FC<ItemsManagerProps> = ({
                         </div>
                         <div>
                           <span className="text-[10px] text-slate-500 dark:text-slate-400 block">Price Range</span>
-                          <span className="font-bold font-mono text-purple-700 dark:text-purple-300">
+                          <span className="font-bold font-mono text-slate-900 dark:text-white">
                             {config.currency_symbol}{Math.min(...formData.variants.map(v => Number(v.unit_price) || 0)).toFixed(2)} – {config.currency_symbol}{Math.max(...formData.variants.map(v => Number(v.unit_price) || 0)).toFixed(2)}
                           </span>
                         </div>
                       </div>
-                      <span className="text-[11px] font-semibold text-purple-600 dark:text-purple-400">
+                      <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
                         ✓ {formData.variants.length} Variant Files ready to save
                       </span>
                     </div>

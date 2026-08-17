@@ -362,7 +362,7 @@ export const CustomerCreditStatementModal: React.FC<CustomerCreditStatementModal
               </div>
 
               {/* Instant Multi-Channel Sharing Actions */}
-              <div className="p-4 rounded-2xl bg-gradient-to-r from-sky-50 via-indigo-50 to-purple-50 dark:from-sky-950/40 dark:via-indigo-950/30 dark:to-purple-950/40 border border-sky-200/80 dark:border-sky-900/60 space-y-3">
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Send className="w-4 h-4 text-sky-600 dark:text-sky-400" />
@@ -414,7 +414,7 @@ export const CustomerCreditStatementModal: React.FC<CustomerCreditStatementModal
                   {/* Phone Native Share Sheet */}
                   <button
                     onClick={handleNativeShare}
-                    className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white rounded-xl text-xs font-bold shadow-xs transition-all hover:scale-[1.02]"
+                    className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-slate-200 text-white dark:text-slate-900 rounded-xl text-xs font-bold shadow-xs transition-all hover:scale-[1.02]"
                     title="Open device native share dialog"
                   >
                     <Share2 className="w-4 h-4" />

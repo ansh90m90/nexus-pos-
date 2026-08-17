@@ -341,7 +341,7 @@ export const ReportsDashboard: React.FC<ReportsDashboardProps> = ({
           {/* Sales by Payment Method */}
           <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
             <h3 className="text-xs font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider flex items-center gap-1.5">
-              <CreditCard className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+              <CreditCard className="w-4 h-4 text-sky-600 dark:text-sky-400" />
               <span>Payment Tender Breakdown</span>
             </h3>
             <div className="space-y-3">

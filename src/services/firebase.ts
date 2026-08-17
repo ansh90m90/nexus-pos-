@@ -73,19 +73,27 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
   throw new Error(JSON.stringify(errInfo));
 }
 
-// Test initial connection as required by Firestore integration skill
+// Optional connection tester
 export async function testConnection(): Promise<boolean> {
   try {
-    await getDocFromServer(doc(db, 'test', 'connection'));
+    if (auth.currentUser) {
+      await getDocFromServer(doc(db, 'users', auth.currentUser.uid));
+    }
     return true;
-  } catch (error) {
-    if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.warn("Nexus POS is operating in offline local mode.");
+  } catch (error: any) {
+    const errorMsg = error?.message || String(error);
+    const errorCode = error?.code || '';
+    if (
+      errorCode === 'unavailable' ||
+      errorMsg.includes('client is offline') ||
+      errorMsg.includes('unavailable') ||
+      errorMsg.includes('backend')
+    ) {
+      console.info("Nexus POS: Local-first offline mode active.");
     }
     return false;
   }
 }
-testConnection();
 
 // Google Auth Provider
 const googleProvider = new GoogleAuthProvider();

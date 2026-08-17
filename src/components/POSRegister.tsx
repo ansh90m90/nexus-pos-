@@ -30,6 +30,7 @@ import { Item, Customer, Sale, SaleItem, Payment, StoreConfig, Employee, ItemVar
 import { sound } from '../services/audio';
 import { WeighedItemModal } from './WeighedItemModal';
 import { VariantSelectModal } from './VariantSelectModal';
+import { CustomerSearchSelect } from './CustomerSearchSelect';
 import { searchItems } from '../utils/fuzzySearch';
 
 interface POSRegisterProps {
@@ -206,9 +207,16 @@ export const POSRegister: React.FC<POSRegisterProps> = ({
       return;
     }
 
-    if (item.variants && item.variants.length > 0) {
-      // Open variant picker dialog to choose variant
+    const variantCount = item.variants?.length || 0;
+    // If more than 3 variants, open selection pop-up menu
+    if (variantCount > 3) {
       setVariantModalItem(item);
+      return;
+    }
+
+    // If 3 or less variants, do NOT open the popup menu; add the first variant directly
+    if (variantCount > 0 && item.variants) {
+      addItemToCart(item, item.variants[0]);
       return;
     }
 
@@ -814,34 +822,37 @@ export const POSRegister: React.FC<POSRegisterProps> = ({
               )}
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2 sm:gap-2.5">
               {filteredItems.map(item => {
                 const isOutOfStock = item.quantity <= 0;
                 const isLowStock = item.quantity > 0 && item.quantity <= item.reorder_level;
                 const isWeighted = item.item_type === 'weighted';
-                const hasVariants = item.variants && item.variants.length > 0;
+                const hasVariants = Boolean(item.variants && item.variants.length > 0);
+                const variantCount = item.variants?.length || 0;
+                const hasMoreThan3Variants = variantCount > 3;
 
                 return (
                   <div
                     key={item.id}
-                    className="group relative flex flex-col justify-between p-3 bg-white dark:bg-slate-900 hover:bg-slate-50/80 dark:hover:bg-slate-850 border border-slate-200 dark:border-slate-800 hover:border-sky-300 dark:hover:border-sky-700 rounded-xl text-left transition-all shadow-xs hover:shadow-sm min-h-[175px]"
+                    onClick={() => handleCatalogItemClick(item)}
+                    className="group relative flex flex-col justify-between p-2.5 sm:p-3 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/80 border border-slate-200 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-600 rounded-xl text-left transition-all shadow-2xs hover:shadow-xs cursor-pointer active:scale-[0.99]"
                   >
                     {/* Header: SKU & Stock Status */}
                     <div>
-                      <div className="flex items-start justify-between gap-1 mb-1.5">
-                        <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 font-semibold truncate max-w-[90px]">
+                      <div className="flex items-start justify-between gap-1 mb-1">
+                        <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 font-semibold truncate max-w-[85px]">
                           {item.item_number}
                         </span>
                         {isOutOfStock ? (
-                          <span className="px-1.5 py-0.5 bg-rose-100 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300 text-[9px] font-bold rounded border border-rose-200 dark:border-rose-900 shrink-0">
+                          <span className="px-1.5 py-0.2 bg-rose-100 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300 text-[9px] font-bold rounded border border-rose-200 dark:border-rose-900 shrink-0">
                             Out of Stock
                           </span>
                         ) : isLowStock ? (
-                          <span className="px-1.5 py-0.5 bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 text-[9px] font-bold rounded border border-amber-200 dark:border-amber-900 shrink-0">
+                          <span className="px-1.5 py-0.2 bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 text-[9px] font-bold rounded border border-amber-200 dark:border-amber-900 shrink-0">
                             {item.quantity} left
                           </span>
                         ) : (
-                          <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium shrink-0">
+                          <span className="text-[9px] text-slate-400 dark:text-slate-500 font-medium shrink-0">
                             {item.quantity} {item.unit_name || 'in stock'}
                           </span>
                         )}
@@ -849,15 +860,14 @@ export const POSRegister: React.FC<POSRegisterProps> = ({
 
                       {/* Product Name */}
                       <h4 
-                        onClick={() => handleCatalogItemClick(item)}
-                        className="text-xs font-bold text-slate-900 dark:text-slate-100 line-clamp-1 leading-snug cursor-pointer hover:text-sky-600 dark:hover:text-sky-400 transition-colors"
+                        className="text-xs font-bold text-slate-900 dark:text-slate-100 line-clamp-1 leading-snug group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors"
                         title={item.name}
                       >
                         {item.name}
                       </h4>
 
                       {/* Category & Tags */}
-                      <div className="flex items-center gap-1.5 mt-0.5 mb-2">
+                      <div className="flex items-center gap-1 mt-0.5 mb-1.5">
                         {isWeighted && (
                           <span className="inline-flex items-center gap-0.5 px-1 py-0.2 rounded bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 text-[9px] font-bold border border-amber-200 dark:border-amber-900 shrink-0">
                             <Scale className="w-2.5 h-2.5" />
@@ -870,24 +880,23 @@ export const POSRegister: React.FC<POSRegisterProps> = ({
                       </div>
                     </div>
 
-                    {/* Middle Section: Variants Selector or Price Details */}
+                    {/* Middle Section: Variants or Quick Selector */}
                     <div className="my-1">
                       {hasVariants ? (
-                        <div className="space-y-1">
-                          <div className="flex items-center justify-between text-[10px] font-semibold text-purple-700 dark:text-purple-300">
-                            <span className="flex items-center gap-1">
-                              <Layers className="w-3 h-3" />
-                              <span>Options ({item.variants!.length})</span>
+                        hasMoreThan3Variants ? (
+                          /* If more than 3 variants: Clean indicator that opens popup modal on tap */
+                          <div className="flex items-center justify-between px-2 py-1 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-800 text-[10px] text-slate-700 dark:text-slate-300 group-hover:bg-slate-100 dark:group-hover:bg-slate-750 transition-colors">
+                            <span className="flex items-center gap-1 font-semibold">
+                              <Layers className="w-3 h-3 text-slate-500" />
+                              <span>{variantCount} Options</span>
                             </span>
-                            <span className="text-[9px] text-slate-400 dark:text-slate-500">
-                              {item.variants!.length > 3 ? 'Scroll for more' : 'Tap to add'}
-                            </span>
+                            <span className="text-[9px] font-medium text-sky-600 dark:text-sky-400">Choose ↗</span>
                           </div>
-
-                          {/* Scrollable Variant Pills List (Max 3 visible without scrolling) */}
-                          <div className="flex flex-nowrap gap-1.5 overflow-x-auto pb-1 pt-0.5 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700">
+                        ) : (
+                          /* If 1 to 3 variants: Show direct tap chips */
+                          <div className="flex flex-wrap gap-1">
                             {item.variants!.map(v => {
-                              const isOutOfStock = (v.quantity ?? 0) <= 0;
+                              const isVarOutOfStock = (v.quantity ?? 0) <= 0;
                               return (
                                 <button
                                   key={v.id}
@@ -896,89 +905,43 @@ export const POSRegister: React.FC<POSRegisterProps> = ({
                                     e.stopPropagation();
                                     handleCatalogItemClick(item, v);
                                   }}
-                                  className={`shrink-0 flex flex-col items-start px-2 py-1 rounded-lg text-left transition-all group/var cursor-pointer shadow-2xs active:scale-95 border ${
-                                    isOutOfStock
-                                      ? 'bg-rose-50/70 dark:bg-rose-950/40 border-rose-200 dark:border-rose-900 text-rose-900 dark:text-rose-200'
-                                      : 'bg-purple-50/80 hover:bg-purple-600 dark:bg-purple-950/40 dark:hover:bg-purple-600 text-purple-900 hover:text-white dark:text-purple-200 dark:hover:text-white border-purple-200/80 dark:border-purple-800/80 hover:border-purple-600'
+                                  className={`flex-1 min-w-[50px] px-1.5 py-0.5 rounded-md text-left transition-all text-[9px] border cursor-pointer ${
+                                    isVarOutOfStock
+                                      ? 'bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-900 text-rose-800 dark:text-rose-200'
+                                      : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200'
                                   }`}
-                                  title={`Add ${item.name} (${v.name}) - ${config.currency_symbol}${v.unit_price.toFixed(2)} [${v.quantity ?? 0} in stock]`}
+                                  title={`${v.name} - ${config.currency_symbol}${v.unit_price.toFixed(2)}`}
                                 >
-                                  <div className="flex items-center justify-between w-full gap-1">
-                                    <span className="text-[10px] font-bold leading-tight truncate max-w-[70px]">
-                                      {v.name}
-                                    </span>
-                                    <span className={`text-[9px] font-bold px-1 rounded ${
-                                      isOutOfStock
-                                        ? 'bg-rose-200 text-rose-900 dark:bg-rose-900 dark:text-rose-200'
-                                        : 'bg-purple-200/80 text-purple-900 dark:bg-purple-900 dark:text-purple-200 group-hover/var:bg-purple-700 group-hover/var:text-white'
-                                    }`}>
-                                      {v.quantity ?? 0}
-                                    </span>
-                                  </div>
-                                  <span className="text-[10px] font-mono font-extrabold text-purple-700 group-hover/var:text-purple-100 dark:text-purple-300 dark:group-hover/var:text-purple-100">
-                                    {config.currency_symbol}{v.unit_price.toFixed(2)}
-                                  </span>
+                                  <div className="font-bold truncate">{v.name}</div>
+                                  <div className="font-mono font-semibold opacity-90">{config.currency_symbol}{v.unit_price.toFixed(2)}</div>
                                 </button>
                               );
                             })}
                           </div>
-                        </div>
-                      ) : (
-                        <div 
-                          onClick={() => handleCatalogItemClick(item)}
-                          className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 flex items-center justify-between cursor-pointer hover:bg-sky-50 dark:hover:bg-sky-950/40 transition-colors"
-                        >
-                          <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-                            Standard
-                          </span>
-                          <span className="text-xs font-black text-sky-700 dark:text-sky-400 font-mono">
-                            {config.currency_symbol}{item.unit_price.toFixed(2)}
-                            {isWeighted && <span className="text-[10px] font-normal text-slate-500"> /{item.unit_name || 'kg'}</span>}
-                          </span>
-                        </div>
-                      )}
+                        )
+                      ) : null}
                     </div>
 
-                    {/* Bottom Action Footer */}
-                    <div className="pt-2 mt-1 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                      <div className="text-[11px] font-mono font-bold text-slate-700 dark:text-slate-300">
-                        {hasVariants ? (
-                          <span className="text-[10px] text-slate-500">
-                            From <span className="font-bold text-slate-900 dark:text-white">{config.currency_symbol}{Math.min(...item.variants!.map(v => v.unit_price)).toFixed(2)}</span>
-                          </span>
-                        ) : (
-                          <span className="text-xs text-sky-700 dark:text-sky-400">
+                    {/* Bottom Price Section */}
+                    <div className="pt-1 mt-auto border-t border-slate-100 dark:border-slate-800 flex items-center justify-between min-h-[24px]">
+                      <div className="text-xs font-mono font-extrabold text-slate-900 dark:text-white">
+                        {!hasVariants ? (
+                          <span>
                             {config.currency_symbol}{item.unit_price.toFixed(2)}
+                            {isWeighted && <span className="text-[10px] font-normal text-slate-400">/{item.unit_name || 'kg'}</span>}
                           </span>
-                        )}
+                        ) : null}
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={() => handleCatalogItemClick(item)}
-                        className={`text-[10px] px-2.5 py-1 rounded-lg transition-colors font-bold flex items-center gap-1 shadow-2xs ${
-                          hasVariants
-                            ? 'bg-purple-100 hover:bg-purple-200 dark:bg-purple-900/60 dark:hover:bg-purple-800/80 text-purple-800 dark:text-purple-200'
-                            : 'bg-sky-600 hover:bg-sky-700 text-white'
-                        }`}
-                      >
-                        {isWeighted ? (
-                          <>
-                            <Scale className="w-3 h-3" />
-                            <span>Weigh</span>
-                          </>
-                        ) : hasVariants ? (
-                          <>
-                            <Plus className="w-3 h-3" />
-                            <span>Default</span>
-                          </>
-                        ) : (
-                          <>
-                            <Plus className="w-3 h-3" />
-                            <span>Add</span>
-                          </>
-                        )}
-                      </button>
+                      {hasVariants ? (
+                        <span className="text-[9px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide">
+                          {hasMoreThan3Variants ? 'Options' : 'Select'}
+                        </span>
+                      ) : isWeighted ? (
+                        <span className="text-[9px] font-semibold text-amber-700 dark:text-amber-400">
+                          Weigh
+                        </span>
+                      ) : null}
                     </div>
                   </div>
                 );
@@ -992,31 +955,23 @@ export const POSRegister: React.FC<POSRegisterProps> = ({
       <div className={`w-full lg:w-[420px] xl:w-[480px] flex-col bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 h-full overflow-y-auto ${
         mobileActiveTab === 'cart' ? 'flex flex-1' : 'hidden lg:flex'
       }`}>
-        {/* Customer Selection Bar */}
+        {/* Customer Selection Bar with Fuzzy Search */}
         <div className="p-3 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 flex items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-800 shrink-0">
-          <div className="flex-1 flex items-center gap-2">
-            <User className="w-4 h-4 text-sky-600 dark:text-sky-400 shrink-0" />
-            <select
-              value={selectedCustomerId}
-              onChange={e => {
-                setSelectedCustomerId(e.target.value);
-                setRedeemedPoints(0);
-                setLoyaltyDiscountAmount(0);
-              }}
-              className="bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-200 text-xs border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-sky-500 w-full truncate font-medium shadow-2xs"
-            >
-              <option value="">Walk-in Customer (Guest)</option>
-              {customers.map(c => (
-                <option key={c.id} value={c.id}>
-                  {c.first_name} {c.last_name}{config.enable_loyalty !== false ? ` (${c.points} pts)` : ''}
-                </option>
-              ))}
-            </select>
-          </div>
+          <CustomerSearchSelect
+            customers={customers}
+            selectedCustomerId={selectedCustomerId}
+            onSelectCustomer={(id) => {
+              setSelectedCustomerId(id);
+              setRedeemedPoints(0);
+              setLoyaltyDiscountAmount(0);
+            }}
+            onAddNewCustomer={() => setIsNewCustModalOpen(true)}
+            config={config}
+          />
 
           <button
             onClick={() => setIsNewCustModalOpen(true)}
-            className="p-1.5 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-sky-600 dark:text-sky-400 rounded-lg border border-slate-300 dark:border-slate-700 text-xs transition-colors shrink-0 shadow-2xs"
+            className="p-2 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-sky-600 dark:text-sky-400 rounded-lg border border-slate-300 dark:border-slate-700 text-xs transition-colors shrink-0 shadow-2xs cursor-pointer"
             title="Add New Customer"
           >
             <UserPlus className="w-3.5 h-3.5" />
@@ -1099,7 +1054,7 @@ export const POSRegister: React.FC<POSRegisterProps> = ({
                       <div className="flex items-center gap-1.5">
                         <h5 className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">{item.name}</h5>
                         {item.variant_name && (
-                          <span className="px-1.5 py-0.2 text-[9px] font-bold bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 rounded border border-purple-200 dark:border-purple-800 shrink-0">
+                          <span className="px-1.5 py-0.2 text-[9px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded border border-slate-200 dark:border-slate-700 shrink-0">
                             {item.variant_name}
                           </span>
                         )}
@@ -1516,7 +1471,7 @@ export const POSRegister: React.FC<POSRegisterProps> = ({
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
-                      Quick Cash Denominations
+                      Quick Cash Denominations ({config.currency_symbol})
                     </label>
                     <span className="text-[11px] text-slate-500">Tap to set exact tender</span>
                   </div>
@@ -1528,14 +1483,17 @@ export const POSRegister: React.FC<POSRegisterProps> = ({
                     >
                       Exact
                     </button>
-                    {[5, 10, 20, 50, 100].map(bill => (
+                    {(config.currency_symbol === '₹' || config.currency_code === 'INR'
+                      ? [50, 100, 200, 500, 2000]
+                      : [5, 10, 20, 50, 100]
+                    ).map(bill => (
                       <button
                         key={bill}
                         type="button"
                         onClick={() => setTenderAmountInput(bill.toFixed(2))}
                         className="py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg text-xs font-bold font-mono"
                       >
-                        ${bill}
+                        {config.currency_symbol}{bill}
                       </button>
                     ))}
                   </div>
@@ -1893,89 +1851,6 @@ export const POSRegister: React.FC<POSRegisterProps> = ({
                 className="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-colors shadow-sm cursor-pointer active:scale-95"
               >
                 Yes, Clear All
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Variant Selector Modal */}
-      {variantModalItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-xs p-4 animate-in fade-in duration-100">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
-            <div className="bg-slate-900 dark:bg-slate-950 px-5 py-3.5 text-white flex items-center justify-between border-b border-slate-800">
-              <div className="flex items-center gap-2">
-                <Layers className="w-4 h-4 text-purple-400" />
-                <div>
-                  <h3 className="font-bold text-sm leading-tight">{variantModalItem.name}</h3>
-                  <p className="text-[10px] text-slate-400">Select variant to add to cart</p>
-                </div>
-              </div>
-              <button 
-                onClick={() => setVariantModalItem(null)} 
-                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="p-4 space-y-2.5 max-h-[65vh] overflow-y-auto">
-              {variantModalItem.variants?.map(v => {
-                const isOutOfStock = (v.quantity ?? 0) <= 0;
-                return (
-                  <button
-                    key={v.id}
-                    type="button"
-                    onClick={() => {
-                      addItemToCart(variantModalItem, v);
-                      setVariantModalItem(null);
-                    }}
-                    className={`w-full p-3 rounded-xl border flex items-center justify-between text-left transition-all group ${
-                      isOutOfStock
-                        ? 'bg-rose-50/50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900/60 hover:border-rose-400'
-                        : 'bg-white dark:bg-slate-850 hover:bg-purple-50 dark:hover:bg-purple-950/40 border-slate-200 dark:border-slate-750 hover:border-purple-300 dark:hover:border-purple-800 shadow-2xs'
-                    }`}
-                  >
-                    <div>
-                      <div className="font-bold text-xs text-slate-900 dark:text-white flex items-center gap-2">
-                        <span>{v.name}</span>
-                        {v.item_number && (
-                          <span className="text-[10px] text-slate-400 font-mono">({v.item_number})</span>
-                        )}
-                      </div>
-                      <div className="text-[11px] mt-0.5">
-                        <span className={`font-semibold ${
-                          isOutOfStock
-                            ? 'text-rose-600 dark:text-rose-400'
-                            : (v.quantity ?? 0) <= 3
-                            ? 'text-amber-600 dark:text-amber-400'
-                            : 'text-purple-600 dark:text-purple-400'
-                        }`}>
-                          {v.quantity ?? 0} in stock
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <span className="font-mono text-sm font-black text-slate-900 dark:text-white">
-                        {config.currency_symbol}{v.unit_price.toFixed(2)}
-                      </span>
-                      <span className="px-2.5 py-1 bg-purple-600 text-white rounded-lg text-xs font-bold shadow-2xs group-hover:bg-purple-700 transition-colors">
-                        + Add
-                      </span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="bg-slate-50 dark:bg-slate-850 px-4 py-3 border-t border-slate-200 dark:border-slate-800 flex justify-end">
-              <button
-                type="button"
-                onClick={() => setVariantModalItem(null)}
-                className="px-4 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-semibold hover:bg-slate-100"
-              >
-                Cancel
               </button>
             </div>
           </div>

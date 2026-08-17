@@ -304,7 +304,7 @@ export const EmployeesManager: React.FC<EmployeesManagerProps> = ({
               <ShieldCheck className="w-5 h-5 text-sky-600 dark:text-sky-400" />
               <span>Staff, Role & Account Management</span>
             </h2>
-            <span className="px-2 py-0.5 rounded bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-900 text-[10px] font-bold uppercase">
+            <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 text-[10px] font-bold uppercase">
               Admin Exclusive
             </span>
           </div>
@@ -349,7 +349,7 @@ export const EmployeesManager: React.FC<EmployeesManagerProps> = ({
             className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-bold transition-colors whitespace-nowrap cursor-pointer"
             title="Configure or Change Owner / Administrator Password"
           >
-            <Lock className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+            <Lock className="w-3.5 h-3.5 opacity-80" />
             <span>Owner PIN</span>
           </button>
 
@@ -436,7 +436,7 @@ export const EmployeesManager: React.FC<EmployeesManagerProps> = ({
                         <div className="flex items-center gap-2">
                           <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-[11px] ${
                             isAdmin
-                              ? 'bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300'
+                              ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900'
                               : 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300'
                           }`}>
                             {emp.first_name[0]}
@@ -457,7 +457,7 @@ export const EmployeesManager: React.FC<EmployeesManagerProps> = ({
                       <td className="py-3 px-4">
                         <span className={`px-2.5 py-1 rounded-full text-[10px] uppercase font-bold tracking-wider ${
                           isAdmin 
-                            ? 'bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-900' 
+                            ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900' 
                             : emp.role === 'manager' 
                             ? 'bg-blue-100 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-900' 
                             : 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900'
@@ -477,7 +477,7 @@ export const EmployeesManager: React.FC<EmployeesManagerProps> = ({
                             <span>No Password (Solo Owner Mode)</span>
                           </div>
                         ) : (
-                          <div className="flex items-center gap-1.5 text-purple-600 dark:text-purple-400 font-mono text-[11px]">
+                          <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300 font-mono text-[11px]">
                             <Lock className="w-3 h-3" />
                             <span>Password Protected</span>
                           </div>
@@ -506,7 +506,7 @@ export const EmployeesManager: React.FC<EmployeesManagerProps> = ({
                                 setShowNewOwnerPin(false);
                                 setIsOwnerModalOpen(true);
                               }}
-                              className="p-1.5 bg-purple-50 dark:bg-purple-950/60 hover:bg-purple-100 dark:hover:bg-purple-900/60 text-purple-700 dark:text-purple-400 rounded-lg transition-colors cursor-pointer"
+                              className="p-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg transition-colors cursor-pointer"
                               title="Set or Change Owner / Admin Security PIN"
                             >
                               <KeyRound className="w-4 h-4" />
@@ -542,37 +542,37 @@ export const EmployeesManager: React.FC<EmployeesManagerProps> = ({
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {/* Administrator Role Card */}
-            <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border-2 border-purple-300 dark:border-purple-800/80 shadow-xs space-y-4">
+            <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border-2 border-slate-900 dark:border-slate-100 shadow-xs space-y-4">
               <div className="flex items-center justify-between">
-                <span className="px-3 py-1 bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-800 rounded-lg text-xs font-black uppercase">
+                <span className="px-3 py-1 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-lg text-xs font-black uppercase">
                   Administrator
                 </span>
-                <span className="text-xs text-purple-600 dark:text-purple-400 font-bold">Full Access</span>
+                <span className="text-xs text-slate-900 dark:text-white font-bold">Full Access</span>
               </div>
               <p className="text-xs text-slate-600 dark:text-slate-300">
                 Complete exclusive control over Store Settings, tax setup, role & staff deletion, and database backups.
               </p>
               <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
                 <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200">
-                  <Check className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />
+                  <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                   <span><strong>Store Settings (Admin Only)</strong></span>
                 </div>
                 <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200">
-                  <Check className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />
+                  <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                   <span>Delete and modify staff roles</span>
                 </div>
                 <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200">
-                  <Check className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />
+                  <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                   <span>Cloud synchronization & Google Auth</span>
                 </div>
                 <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200">
-                  <Check className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />
+                  <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                   <span>Password protected when staff exist; auto-bypassed when solo</span>
                 </div>
               </div>
               <button
                 onClick={() => handleOpenAdd('admin')}
-                className="w-full py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-bold transition-colors"
+                className="w-full py-2 bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-slate-200 text-white dark:text-slate-900 rounded-lg text-xs font-bold transition-colors"
               >
                 + Add Administrator
               </button>
@@ -988,26 +988,26 @@ export const EmployeesManager: React.FC<EmployeesManagerProps> = ({
       {isOwnerModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-xs p-4">
           <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-            <div className="bg-purple-700 dark:bg-purple-900 px-5 py-4 text-white flex items-center justify-between">
+            <div className="bg-slate-900 dark:bg-slate-950 px-5 py-4 text-white flex items-center justify-between border-b border-slate-800">
               <div className="flex items-center gap-2">
-                <Lock className="w-5 h-5 text-white" />
+                <Lock className="w-5 h-5 text-slate-300" />
                 <span className="font-bold text-sm">Owner / Admin Security Password</span>
               </div>
               <button
                 onClick={() => setIsOwnerModalOpen(false)}
-                className="text-purple-200 hover:text-white transition-colors"
+                className="text-slate-400 hover:text-white transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <form onSubmit={handleSaveOwnerPin} className="p-6 space-y-4">
-              <div className="p-3.5 bg-purple-50 dark:bg-purple-950/50 border border-purple-200 dark:border-purple-900/60 rounded-xl space-y-1 text-xs text-purple-900 dark:text-purple-200">
+              <div className="p-3.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl space-y-1 text-xs text-slate-900 dark:text-slate-100">
                 <div className="font-bold flex items-center gap-1.5">
-                  <ShieldCheck className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                  <ShieldCheck className="w-4 h-4 text-slate-700 dark:text-slate-300" />
                   <span>Admin Account: {primaryAdmin?.first_name} {primaryAdmin?.last_name} (@{primaryAdmin?.username})</span>
                 </div>
-                <p className="text-[11px] text-purple-800 dark:text-purple-300/90 leading-relaxed">
+                <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
                   This password protects your administrative privileges, store settings, profit margins, and prevents staff from deleting records or accounts.
                 </p>
               </div>
@@ -1020,7 +1020,7 @@ export const EmployeesManager: React.FC<EmployeesManagerProps> = ({
                   <button
                     type="button"
                     onClick={() => setShowNewOwnerPin(!showNewOwnerPin)}
-                    className="text-[11px] text-purple-600 dark:text-purple-400 hover:underline flex items-center gap-1 font-semibold cursor-pointer"
+                    className="text-[11px] text-slate-600 dark:text-slate-400 hover:underline flex items-center gap-1 font-semibold cursor-pointer"
                   >
                     {showNewOwnerPin ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
                     <span>{showNewOwnerPin ? 'Hide' : 'Show'}</span>
@@ -1034,7 +1034,7 @@ export const EmployeesManager: React.FC<EmployeesManagerProps> = ({
                     value={newOwnerPin}
                     onChange={e => setNewOwnerPin(e.target.value)}
                     placeholder="Enter new owner password or PIN"
-                    className="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg text-xs font-mono tracking-wider focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                    className="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg text-xs font-mono tracking-wider focus:ring-2 focus:ring-slate-400 focus:outline-none"
                     autoFocus
                   />
                   <Lock className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-3" />
@@ -1053,7 +1053,7 @@ export const EmployeesManager: React.FC<EmployeesManagerProps> = ({
                     value={confirmNewOwnerPin}
                     onChange={e => setConfirmNewOwnerPin(e.target.value)}
                     placeholder="Re-enter password or PIN"
-                    className="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg text-xs font-mono tracking-wider focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                    className="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg text-xs font-mono tracking-wider focus:ring-2 focus:ring-slate-400 focus:outline-none"
                   />
                   <Lock className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-3" />
                 </div>
@@ -1074,7 +1074,7 @@ export const EmployeesManager: React.FC<EmployeesManagerProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer"
+                  className="px-5 py-2 bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-slate-200 text-white dark:text-slate-900 rounded-lg text-xs font-bold shadow-xs cursor-pointer"
                 >
                   Save Owner Password
                 </button>

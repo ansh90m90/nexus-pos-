@@ -13,7 +13,9 @@ import {
   Laptop, 
   Users, 
   LogIn, 
-  ArrowRight
+  ArrowRight,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { Employee, StoreConfig } from '../types/pos';
 import { storage } from '../services/storage';
@@ -26,6 +28,7 @@ interface AuthGatewayProps {
   onRegisterStaff?: (newEmp: Omit<Employee, 'id'>) => Employee;
   onGoogleSignIn?: () => Promise<void>;
   onCompleteFirstTimeSetup?: () => void;
+  onToggleTheme?: () => void;
 }
 
 export const AuthGateway: React.FC<AuthGatewayProps> = ({
@@ -36,7 +39,9 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
   onRegisterStaff,
   onGoogleSignIn,
   onCompleteFirstTimeSetup,
+  onToggleTheme,
 }) => {
+  const isDarkMode = config?.theme === 'dark';
   const activeEmployees = employees.filter(e => e.is_active !== false);
   const remembered = storage.getRememberedUser();
 
@@ -215,24 +220,27 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between selection:bg-sky-500 selection:text-white font-sans">
+    <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col justify-between selection:bg-sky-500 selection:text-white font-sans transition-colors">
       {/* Top Navigation / Brand Header */}
-      <header className="border-b border-slate-800 bg-slate-900/80 px-4 sm:px-6 py-3.5 sticky top-0 z-20">
+      <header className="border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xs px-4 sm:px-6 py-3.5 sticky top-0 z-20 transition-colors shadow-2xs">
         <div className="max-w-6xl mx-auto flex flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2.5 sm:gap-3">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-sky-600/20 border border-sky-500/30 flex items-center justify-center text-sky-400 font-black text-base sm:text-lg shrink-0">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-900 dark:bg-slate-800 text-white dark:text-slate-100 flex items-center justify-center font-black text-base sm:text-lg shrink-0 shadow-xs">
               <Store className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-1.5 sm:gap-2">
-                <h1 className="text-sm sm:text-base font-black tracking-tight text-white truncate max-w-[180px] sm:max-w-md">
-                  {config?.company_name || 'Nexus POS Retail'}
+                <h1 
+                  style={{ fontFamily: 'Verdana, sans-serif', fontStyle: 'normal' }}
+                  className="text-sm sm:text-base font-bold not-italic tracking-tight text-slate-900 dark:text-white truncate max-w-[180px] sm:max-w-md"
+                >
+                  {(!config?.company_name || config.company_name.includes('Open Source POS') || config.company_name.includes('OSPOS')) ? 'Nexus POS' : config.company_name}
                 </h1>
-                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30 shrink-0">
+                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shrink-0">
                   v3.4.0
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 hidden xs:block">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 hidden xs:block">
                 Point of Sale Terminal & Account Sign In
               </p>
             </div>
@@ -240,17 +248,30 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
 
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="text-right hidden md:block">
-              <div className="text-xs font-semibold text-slate-300">
+              <div className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                 {new Date().toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
               </div>
-              <div className="text-[10px] text-slate-400 font-mono flex items-center justify-end gap-1">
-                <Laptop className="w-3 h-3 text-emerald-400" />
+              <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono flex items-center justify-end gap-1">
+                <Laptop className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                 <span>Device: {storage.getDeviceId().substring(0, 10)}</span>
               </div>
             </div>
-            <div className="h-7 w-px bg-slate-800 hidden md:block" />
-            <div className="flex items-center gap-1.5 px-2.5 py-1 sm:py-1.5 rounded-lg bg-emerald-950/40 border border-emerald-800/50 text-emerald-300 text-xs font-semibold shrink-0">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+
+            {/* Theme Toggle Button */}
+            {onToggleTheme && (
+              <button
+                type="button"
+                onClick={onToggleTheme}
+                className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-colors"
+                title={`Switch to ${isDarkMode ? 'Light' : 'Dark'} mode`}
+              >
+                {isDarkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-600" />}
+              </button>
+            )}
+
+            <div className="h-7 w-px bg-slate-200 dark:bg-slate-800 hidden md:block" />
+            <div className="flex items-center gap-1.5 px-2.5 py-1 sm:py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50 text-emerald-800 dark:text-emerald-300 text-xs font-semibold shrink-0">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
               <span className="text-[11px] sm:text-xs">Secure POS</span>
             </div>
           </div>
@@ -259,17 +280,16 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
 
       {/* Main Authentication Container */}
       <main className="flex-1 flex items-center justify-center p-3 sm:p-6 lg:p-8">
-        <div className="w-full max-w-4xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden">
+        <div className="w-full max-w-4xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl overflow-hidden transition-colors">
           
           {/* Navigation Bar / Tabs */}
-          <div className="flex border-b border-slate-800 bg-slate-950/80">
+          <div className="flex border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/80">
             <button
               onClick={() => { setActiveTab('signin'); setError(null); }}
-              style={{ backgroundColor: activeTab === 'signin' ? '#11172a' : undefined }}
               className={`flex-1 py-3 px-3 sm:px-4 text-xs font-bold flex items-center justify-center gap-2 transition-colors border-b-2 ${
                 activeTab === 'signin'
-                  ? 'border-sky-500 text-sky-400 bg-slate-900/60'
-                  : 'border-transparent text-slate-400 hover:text-slate-200'
+                  ? 'border-slate-900 dark:border-slate-100 text-slate-900 dark:text-white bg-white dark:bg-slate-900'
+                  : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
               }`}
             >
               <LogIn className="w-4 h-4 shrink-0" />
@@ -280,14 +300,13 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
             {isFirstTime && (
               <button
                 onClick={() => { setActiveTab('first_time_setup'); setError(null); }}
-                style={{ backgroundColor: '#2a384a' }}
                 className={`flex-1 py-3 px-3 sm:px-4 text-xs font-bold flex items-center justify-center gap-2 transition-colors border-b-2 ${
                   activeTab === 'first_time_setup'
-                    ? 'border-emerald-500 text-emerald-400 bg-slate-900/60'
-                    : 'border-transparent text-emerald-400/70 hover:text-emerald-300'
+                    ? 'border-emerald-600 dark:border-emerald-500 text-emerald-700 dark:text-emerald-400 bg-white dark:bg-slate-900'
+                    : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                 }`}
               >
-                <Sparkles className="w-4 h-4 shrink-0 text-emerald-400" />
+                <Sparkles className="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
                 <span className="truncate">First-Time Setup</span>
               </button>
             )}
@@ -295,19 +314,19 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
 
           {/* First-time Welcome Banner */}
           {isFirstTime && activeTab === 'signin' && (
-            <div style={{ backgroundColor: '#2a384a' }} className="bg-sky-950/60 border-b border-sky-800/50 p-3 sm:p-4 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-sky-200">
+            <div className="bg-sky-50 dark:bg-sky-950/60 border-b border-sky-200 dark:border-sky-800/50 p-3 sm:p-4 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-sky-900 dark:text-sky-200">
               <div className="flex items-center gap-2.5">
-                <div className="p-1.5 rounded-lg bg-sky-500/20 text-sky-300 shrink-0">
+                <div className="p-1.5 rounded-lg bg-sky-100 dark:bg-sky-500/20 text-sky-700 dark:text-sky-300 shrink-0">
                   <Sparkles className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="font-bold text-white">First-time terminal sign in detected.</div>
-                  <div className="text-slate-300 text-[11px]">Select your account below or continue with Google to start.</div>
+                  <div className="font-bold text-slate-900 dark:text-white">First-time terminal sign in detected.</div>
+                  <div className="text-slate-600 dark:text-slate-300 text-[11px]">Select your account below or continue with Google to start.</div>
                 </div>
               </div>
               <button
                 onClick={() => setActiveTab('first_time_setup')}
-                className="px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-xs font-bold whitespace-nowrap shadow-xs w-full sm:w-auto"
+                className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-slate-200 text-white dark:text-slate-900 rounded-lg text-xs font-bold whitespace-nowrap shadow-xs w-full sm:w-auto transition-colors cursor-pointer"
               >
                 Add Staff Account
               </button>
@@ -316,18 +335,18 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
 
           {/* Success Notification */}
           {newStaffSuccess && (
-            <div className="bg-emerald-950/80 border-b border-emerald-800 text-emerald-200 px-4 py-3 text-xs flex items-center justify-between">
+            <div className="bg-emerald-50 dark:bg-emerald-950/80 border-b border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200 px-4 py-3 text-xs flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                 <span>{newStaffSuccess}</span>
               </div>
-              <button onClick={() => setNewStaffSuccess(null)} className="text-emerald-400 hover:text-white font-bold p-1">✕</button>
+              <button onClick={() => setNewStaffSuccess(null)} className="text-emerald-700 dark:text-emerald-400 hover:text-slate-900 dark:hover:text-white font-bold p-1">✕</button>
             </div>
           )}
 
           {/* TAB 1: SIGN IN VIEW */}
           {activeTab === 'signin' && (
-            <div style={{ backgroundColor: '#2a384a' }} className="p-4 sm:p-6 lg:p-8 space-y-6">
+            <div className="p-4 sm:p-6 lg:p-8 space-y-6">
               
               {/* PRIMARY OPTION 1: Continue with Google */}
               <div className="max-w-md mx-auto space-y-3">
@@ -335,10 +354,10 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
                   type="button"
                   onClick={handleGoogleClick}
                   disabled={isGoogleLoading}
-                  className="w-full flex items-center justify-center gap-3 px-4 py-2.5 sm:py-3 bg-white hover:bg-slate-100 text-slate-900 rounded-xl font-bold text-xs sm:text-sm shadow-md transition-all border border-slate-300 hover:shadow-lg disabled:opacity-50 cursor-pointer active:scale-[0.99]"
+                  className="w-full flex items-center justify-center gap-3 px-4 py-2.5 sm:py-3 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-white rounded-xl font-bold text-xs sm:text-sm shadow-xs transition-all border border-slate-300 dark:border-slate-700 hover:shadow-md disabled:opacity-50 cursor-pointer active:scale-[0.99]"
                 >
                   {isGoogleLoading ? (
-                    <div className="w-4 h-4 border-2 border-slate-900 border-t-transparent rounded-full animate-spin shrink-0" />
+                    <div className="w-4 h-4 border-2 border-slate-900 dark:border-white border-t-transparent rounded-full animate-spin shrink-0" />
                   ) : (
                     <svg className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" viewBox="0 0 24 24">
                       <path
@@ -363,11 +382,11 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
                 </button>
 
                 <div className="flex items-center gap-3">
-                  <div className="flex-1 h-px bg-slate-800" />
-                  <span className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">
+                  <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800" />
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider">
                     Or select terminal profile
                   </span>
-                  <div className="flex-1 h-px bg-slate-800" />
+                  <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800" />
                 </div>
               </div>
 
@@ -377,17 +396,17 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
                 {/* Left Column: Staff & Admin Account Selector */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-                      <Users className="w-3.5 h-3.5 text-sky-400" />
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                      <Users className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400" />
                       <span>Select Account ({activeEmployees.length})</span>
                     </label>
 
                     {!hasStaff ? (
-                      <span className="text-[10px] font-bold text-amber-400 bg-amber-950/60 border border-amber-800 px-2 py-0.5 rounded">
+                      <span className="text-[10px] font-bold text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded">
                         Solo Owner Mode
                       </span>
                     ) : (
-                      <span className="text-[10px] text-slate-400">
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400">
                         {staffEmployees.length} Staff • {adminEmployees.length} Admin
                       </span>
                     )}
@@ -411,25 +430,25 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
                           }}
                           className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
                             isSelected
-                              ? 'border-sky-500 bg-sky-950/40 ring-1 ring-sky-500 shadow-md'
-                              : 'border-slate-800 bg-slate-900/60 hover:bg-slate-800/70'
+                              ? 'border-slate-900 dark:border-slate-100 bg-slate-100/80 dark:bg-slate-800/90 ring-1 ring-slate-400 shadow-sm'
+                              : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/40 hover:bg-slate-50 dark:hover:bg-slate-800/80'
                           }`}
                         >
                           <div className="flex items-center justify-between gap-2">
                             <div className="flex items-center gap-2.5 min-w-0">
                               <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${
                                 isAdmin
-                                  ? 'bg-purple-900/60 text-purple-300 border border-purple-700/60'
-                                  : 'bg-emerald-900/60 text-emerald-300 border border-emerald-700/60'
+                                  ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900'
+                                  : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
                               }`}>
                                 {emp.first_name[0]}{emp.last_name ? emp.last_name[0] : ''}
                               </div>
                               <div className="min-w-0">
-                                <div className="font-bold text-white text-xs flex items-center gap-1 truncate">
+                                <div className="font-bold text-slate-900 dark:text-white text-xs flex items-center gap-1 truncate">
                                   <span className="truncate">{emp.first_name} {emp.last_name}</span>
-                                  {isSelected && <Check className="w-3.5 h-3.5 text-sky-400 shrink-0" />}
+                                  {isSelected && <Check className="w-3.5 h-3.5 text-slate-900 dark:text-slate-100 shrink-0" />}
                                 </div>
-                                <div className="text-[10px] text-slate-400 font-mono truncate">
+                                <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono truncate">
                                   @{emp.username}
                                 </div>
                               </div>
@@ -438,23 +457,23 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
                             <div className="text-right flex flex-col items-end gap-1 shrink-0">
                               <span className={`px-1.5 py-0.5 rounded text-[9px] uppercase font-bold tracking-wider ${
                                 isAdmin
-                                  ? 'bg-purple-950 text-purple-300 border border-purple-800'
-                                  : 'bg-emerald-950 text-emerald-300 border border-emerald-800'
+                                  ? 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700'
+                                  : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
                               }`}>
                                 {emp.role}
                               </span>
 
                               {/* Password Requirement Badge */}
                               {isStaffNoPass ? (
-                                <span className="text-[10px] text-emerald-400 font-semibold">
+                                <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-semibold">
                                   Instant Access
                                 </span>
                               ) : isSoloAdminNoPass ? (
-                                <span className="text-[10px] text-amber-300 font-semibold">
+                                <span className="text-[10px] text-amber-700 dark:text-amber-300 font-semibold">
                                   No Password (Solo)
                                 </span>
                               ) : (
-                                <span className="text-[10px] text-purple-300 font-semibold flex items-center gap-0.5">
+                                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold flex items-center gap-0.5">
                                   <Lock className="w-2.5 h-2.5" />
                                   PIN Required
                                 </span>
@@ -464,8 +483,8 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
 
                           {/* Instant Login Button for Staff and Solo Admin */}
                           {(isStaffNoPass || isSoloAdminNoPass) && (
-                            <div className="mt-2.5 pt-2 border-t border-slate-800/80 flex items-center justify-between gap-2">
-                              <span className="text-[10px] text-slate-400 truncate">
+                            <div className="mt-2.5 pt-2 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2">
+                              <span className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
                                 {isStaffNoPass ? 'Staff 1-Click Access' : 'Solo Owner 1-Click Access'}
                               </span>
                               <button
@@ -474,7 +493,7 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
                                   e.stopPropagation();
                                   handleQuickStaffLogin(emp);
                                 }}
-                                className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition-colors flex items-center gap-1 shadow-xs shrink-0 active:scale-95"
+                                className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-colors flex items-center gap-1 shadow-xs shrink-0 active:scale-95 cursor-pointer"
                               >
                                 <span>Sign In</span>
                                 <ArrowRight className="w-3 h-3" />
@@ -488,25 +507,25 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
                 </div>
 
                 {/* Right Column: Authentication Panel */}
-                <div className="bg-slate-950/80 p-4 sm:p-5 rounded-2xl border border-slate-800 flex flex-col justify-between">
+                <div className="bg-slate-50 dark:bg-slate-950/70 p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col justify-between">
                   <form onSubmit={handleSignIn} className="space-y-3.5">
                     
                     {/* Selected User Header */}
                     {selectedEmployee && (
-                      <div className="p-2.5 sm:p-3 bg-slate-900 rounded-xl border border-slate-800 flex items-center justify-between gap-2">
+                      <div className="p-2.5 sm:p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2 shadow-2xs">
                         <div className="flex items-center gap-2.5 min-w-0">
                           <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
                             isSelectedAdmin
-                              ? 'bg-purple-900/60 text-purple-300'
-                              : 'bg-emerald-900/60 text-emerald-300'
+                              ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900'
+                              : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
                           }`}>
                             {selectedEmployee.first_name[0]}
                           </div>
                           <div className="min-w-0">
-                            <div className="text-xs font-bold text-white truncate">
+                            <div className="text-xs font-bold text-slate-900 dark:text-white truncate">
                               {selectedEmployee.first_name} {selectedEmployee.last_name}
                             </div>
-                            <div className="text-[10px] text-slate-400 font-mono truncate">
+                            <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono truncate">
                               Role: {selectedEmployee.role.toUpperCase()}
                             </div>
                           </div>
@@ -514,8 +533,8 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
 
                         <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase shrink-0 ${
                           isSelectedAdmin
-                            ? 'bg-purple-950 text-purple-300 border border-purple-800'
-                            : 'bg-emerald-950 text-emerald-300 border border-emerald-800'
+                            ? 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700'
+                            : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
                         }`}>
                           {selectedEmployee.role}
                         </span>
@@ -524,16 +543,16 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
 
                     {/* PASSWORD PROMPT LOGIC */}
                     {!isPasswordRequiredForSelected ? (
-                      <div className="p-3.5 sm:p-4 bg-emerald-950/30 border border-emerald-800/50 rounded-xl space-y-1.5 text-center">
-                        <div className="w-9 h-9 rounded-full bg-emerald-500/20 text-emerald-400 mx-auto flex items-center justify-center">
+                      <div className="p-3.5 sm:p-4 bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50 rounded-xl space-y-1.5 text-center">
+                        <div className="w-9 h-9 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 mx-auto flex items-center justify-center">
                           <CheckCircle2 className="w-5 h-5" />
                         </div>
-                        <div className="text-xs font-bold text-emerald-300">
+                        <div className="text-xs font-bold text-emerald-800 dark:text-emerald-300">
                           {isSelectedAdmin
                             ? 'Solo Owner Mode: Password Not Required'
                             : 'Staff Account: Password Not Required'}
                         </div>
-                        <p className="text-[11px] text-slate-400 leading-relaxed">
+                        <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
                           {isSelectedAdmin
                             ? 'No staff accounts exist yet. Admin signs in instantly with zero password required.'
                             : 'Staff accounts can sign in directly to operate the cash register without entering a PIN.'}
@@ -542,14 +561,14 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
                     ) : (
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
-                            <Lock className="w-3.5 h-3.5 text-purple-400" />
+                          <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                            <Lock className="w-3.5 h-3.5 text-slate-500" />
                             <span>Administrator Password / PIN *</span>
                           </label>
                           <button
                             type="button"
                             onClick={() => setShowPin(!showPin)}
-                            className="text-[11px] text-sky-400 hover:underline flex items-center gap-1"
+                            className="text-[11px] text-slate-700 dark:text-slate-300 hover:underline flex items-center gap-1 font-semibold"
                           >
                             {showPin ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
                             <span>{showPin ? 'Hide' : 'Show'}</span>
@@ -565,11 +584,11 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
                               setError(null);
                             }}
                             placeholder="Enter admin password (Default: 1234)"
-                            className="w-full text-center text-sm sm:text-base tracking-widest font-mono px-3 py-2 sm:py-2.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            className="w-full text-center text-sm sm:text-base tracking-widest font-mono px-3 py-2 sm:py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-400 shadow-2xs"
                             autoFocus
                           />
                         </div>
-                        <span className="text-[10px] text-slate-400 block text-center">
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 block text-center">
                           Admin PIN protects Settings & Inventory from staff.
                         </span>
 
@@ -584,7 +603,7 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
                                 else if (digit === '⌫') setPin(prev => prev.slice(0, -1));
                                 else handleKeypadDigit(digit);
                               }}
-                              className="py-2 sm:py-2.5 bg-slate-900 hover:bg-slate-800 active:bg-slate-700 text-slate-200 font-mono font-bold text-xs sm:text-sm rounded-lg border border-slate-800 transition-colors shadow-2xs"
+                              className="py-2 sm:py-2.5 bg-white hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800 active:scale-95 text-slate-800 dark:text-slate-200 font-mono font-bold text-xs sm:text-sm rounded-lg border border-slate-200 dark:border-slate-800 transition-colors shadow-2xs cursor-pointer"
                             >
                               {digit}
                             </button>
@@ -594,8 +613,8 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
                     )}
 
                     {error && (
-                      <div className="p-2.5 sm:p-3 rounded-lg bg-rose-950/80 border border-rose-800 text-rose-200 text-xs flex items-center gap-2">
-                        <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+                      <div className="p-2.5 sm:p-3 rounded-lg bg-rose-50 dark:bg-rose-950/80 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-200 text-xs flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 shrink-0 text-rose-600 dark:text-rose-400" />
                         <span className="truncate">{error}</span>
                       </div>
                     )}
@@ -603,11 +622,7 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
                     <div className="pt-1">
                       <button
                         type="submit"
-                        className={`w-full py-2.5 sm:py-3 rounded-xl font-bold text-xs shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] ${
-                          !isPasswordRequiredForSelected
-                            ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-950/40'
-                            : 'bg-sky-600 hover:bg-sky-500 text-white shadow-sky-950/40'
-                        }`}
+                        className="w-full py-2.5 sm:py-3 rounded-xl font-bold text-xs bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-slate-200 text-white dark:text-slate-900 shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]"
                       >
                         <LogIn className="w-4 h-4" />
                         <span className="truncate">
@@ -619,13 +634,13 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
                     </div>
 
                     {/* Remember Device Control */}
-                    <div className="flex items-center justify-center p-2.5 rounded-xl bg-slate-900/60 border border-slate-800">
-                      <label className="flex items-center gap-2 text-[11px] text-slate-300 font-medium cursor-pointer select-none">
+                    <div className="flex items-center justify-center p-2.5 rounded-xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
+                      <label className="flex items-center gap-2 text-[11px] text-slate-700 dark:text-slate-300 font-medium cursor-pointer select-none">
                         <input
                           type="checkbox"
                           checked={rememberDevice}
                           onChange={e => setRememberDevice(e.target.checked)}
-                          className="w-4 h-4 rounded border-slate-700 bg-slate-950 text-sky-500 focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                          className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 focus:ring-0 focus:ring-offset-0 cursor-pointer"
                         />
                         <span>Remember this terminal device for fast sign in</span>
                       </label>
@@ -641,59 +656,59 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
             <div className="p-4 sm:p-6 lg:p-8 space-y-5">
               <div className="max-w-xl mx-auto space-y-4">
                 <div>
-                  <h3 className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
-                    <UserPlus className="w-5 h-5 text-emerald-400 shrink-0" />
+                  <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <UserPlus className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                     <span>Create Initial Store Account / Staff</span>
                   </h3>
-                  <p className="text-xs text-slate-400 mt-1">
+                  <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
                     Configure the store administrator or add your staff member.
                     Staff accounts do not require passwords; Admin accounts require a password once staff exist.
                   </p>
                 </div>
 
-                <form onSubmit={handleCreateInitialStaff} className="space-y-3.5 bg-slate-950/80 p-4 sm:p-6 rounded-2xl border border-slate-800">
+                <form onSubmit={handleCreateInitialStaff} className="space-y-3.5 bg-slate-50 dark:bg-slate-950/80 p-4 sm:p-6 rounded-2xl border border-slate-200 dark:border-slate-800">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-bold text-slate-300 mb-1">First Name *</label>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">First Name *</label>
                       <input
                         type="text"
                         required
                         value={newStaff.first_name}
                         onChange={e => setNewStaff({ ...newStaff, first_name: e.target.value })}
                         placeholder="e.g. John"
-                        className="w-full px-3 py-2 bg-slate-900 border border-slate-700 text-white rounded-lg text-xs focus:ring-2 focus:ring-sky-500"
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg text-xs focus:ring-2 focus:ring-slate-400"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-slate-300 mb-1">Last Name</label>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Last Name</label>
                       <input
                         type="text"
                         value={newStaff.last_name}
                         onChange={e => setNewStaff({ ...newStaff, last_name: e.target.value })}
                         placeholder="e.g. Doe"
-                        className="w-full px-3 py-2 bg-slate-900 border border-slate-700 text-white rounded-lg text-xs focus:ring-2 focus:ring-sky-500"
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg text-xs focus:ring-2 focus:ring-slate-400"
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-bold text-slate-300 mb-1">Username *</label>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Username *</label>
                       <input
                         type="text"
                         required
                         value={newStaff.username}
                         onChange={e => setNewStaff({ ...newStaff, username: e.target.value.toLowerCase().trim() })}
                         placeholder="e.g. johndoe"
-                        className="w-full px-3 py-2 bg-slate-900 border border-slate-700 text-white rounded-lg text-xs font-mono focus:ring-2 focus:ring-sky-500"
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg text-xs font-mono focus:ring-2 focus:ring-slate-400"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-slate-300 mb-1">Account Role *</label>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Account Role *</label>
                       <select
                         value={newStaff.role}
                         onChange={e => setNewStaff({ ...newStaff, role: e.target.value as any })}
-                        className="w-full px-3 py-2 bg-slate-900 border border-slate-700 text-white rounded-lg text-xs font-semibold focus:ring-2 focus:ring-sky-500"
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg text-xs font-semibold focus:ring-2 focus:ring-slate-400"
                       >
                         <option value="admin">Administrator / Store Owner</option>
                         <option value="cashier">Staff / Cashier (No Password)</option>
@@ -704,7 +719,7 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
 
                   {newStaff.role === 'admin' && (
                     <div>
-                      <label className="block text-xs font-bold text-slate-300 mb-1">
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                         Admin Security PIN / Password *
                       </label>
                       <input
@@ -713,9 +728,9 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
                         value={newStaff.pin}
                         onChange={e => setNewStaff({ ...newStaff, pin: e.target.value })}
                         placeholder="e.g. 1234"
-                        className="w-full px-3 py-2 bg-slate-900 border border-slate-700 text-white rounded-lg text-xs font-mono focus:ring-2 focus:ring-sky-500"
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg text-xs font-mono focus:ring-2 focus:ring-slate-400"
                       />
-                      <span className="text-[10px] text-slate-400 mt-1 block">
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 block">
                         Admin password protects Settings from staff.
                       </span>
                     </div>
@@ -723,29 +738,29 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-bold text-slate-300 mb-1">Email</label>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Email</label>
                       <input
                         type="email"
                         value={newStaff.email}
                         onChange={e => setNewStaff({ ...newStaff, email: e.target.value })}
                         placeholder="john@store.com"
-                        className="w-full px-3 py-2 bg-slate-900 border border-slate-700 text-white rounded-lg text-xs focus:ring-2 focus:ring-sky-500"
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg text-xs focus:ring-2 focus:ring-slate-400"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-slate-300 mb-1">Phone</label>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Phone</label>
                       <input
                         type="text"
                         value={newStaff.phone_number}
                         onChange={e => setNewStaff({ ...newStaff, phone_number: e.target.value })}
                         placeholder="555-0100"
-                        className="w-full px-3 py-2 bg-slate-900 border border-slate-700 text-white rounded-lg text-xs focus:ring-2 focus:ring-sky-500"
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg text-xs focus:ring-2 focus:ring-slate-400"
                       />
                     </div>
                   </div>
 
                   {error && (
-                    <div className="p-3 rounded-lg bg-rose-950/80 border border-rose-800 text-rose-200 text-xs">
+                    <div className="p-3 rounded-lg bg-rose-50 dark:bg-rose-950/80 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-200 text-xs">
                       {error}
                     </div>
                   )}
@@ -754,13 +769,13 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
                     <button
                       type="button"
                       onClick={() => setActiveTab('signin')}
-                      className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold"
+                      className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-semibold"
                     >
                       Back to Sign In
                     </button>
                     <button
                       type="submit"
-                      className="px-4 sm:px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold shadow-xs"
+                      className="px-4 sm:px-5 py-2 bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-slate-200 text-white dark:text-slate-900 rounded-lg text-xs font-bold shadow-xs"
                     >
                       Create & Launch POS
                     </button>
@@ -771,18 +786,18 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
           )}
 
           {/* System Rules & Protection Summary Footer */}
-          <div className="px-4 sm:px-6 py-3.5 bg-slate-950 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-2.5 text-[11px] text-slate-400">
+          <div className="px-4 sm:px-6 py-3.5 bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-2.5 text-[11px] text-slate-500 dark:text-slate-400">
             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 sm:gap-4">
               <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
+                <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
                 <span>Staff: Instant 1-Click</span>
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-purple-400 shrink-0" />
+                <span className="w-2 h-2 rounded-full bg-slate-500 shrink-0" />
                 <span>Admin: PIN Protected</span>
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0" />
+                <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
                 <span>Settings: Admin Only</span>
               </span>
             </div>
@@ -795,8 +810,8 @@ export const AuthGateway: React.FC<AuthGatewayProps> = ({
       </main>
 
       {/* Footer */}
-      <footer className="py-3 text-center text-xs text-slate-600 border-t border-slate-900 px-4">
-        Authorized Retail POS Terminal • Open Source Point of Sale System
+      <footer className="py-3 text-center text-xs text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-slate-800 px-4">
+        Authorized POS Terminal • Nexus Point of Sale System
       </footer>
     </div>
   );

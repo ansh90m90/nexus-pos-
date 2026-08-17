@@ -203,7 +203,7 @@ export const ReceivingsManager: React.FC<ReceivingsManagerProps> = ({
                           <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono flex items-center gap-2">
                             <span>{item.item_number}</span>
                             <span>• Current Stock: {item.quantity}</span>
-                            {hasVariants && <span className="text-purple-600 dark:text-purple-400 font-bold">({item.variants?.length} variants)</span>}
+                            {hasVariants && <span className="text-slate-600 dark:text-slate-400 font-bold">({item.variants?.length} variants)</span>}
                           </div>
                         </div>
 
@@ -214,11 +214,11 @@ export const ReceivingsManager: React.FC<ReceivingsManagerProps> = ({
                                 key={v.id}
                                 type="button"
                                 onClick={() => addItemToReceiving(item, v)}
-                                className="px-2 py-1 bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/60 dark:hover:bg-purple-900/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 rounded text-[11px] font-semibold transition-colors flex items-center gap-1.5"
+                                className="px-2 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded text-[11px] font-semibold transition-colors flex items-center gap-1.5"
                                 title={`Current Stock: ${v.quantity ?? 0}`}
                               >
                                 <span>{v.name}</span>
-                                <span className="text-[10px] font-bold text-purple-900 dark:text-purple-200 bg-purple-200/70 dark:bg-purple-900/70 px-1 rounded">
+                                <span className="text-[10px] font-bold text-slate-900 dark:text-slate-100 bg-slate-200 dark:bg-slate-700 px-1 rounded">
                                   {v.quantity ?? 0}
                                 </span>
                                 <span className="font-mono text-[10px] opacity-75">({config.currency_symbol}{v.cost_price?.toFixed(2) || item.cost_price.toFixed(2)})</span>
@@ -233,7 +233,7 @@ export const ReceivingsManager: React.FC<ReceivingsManagerProps> = ({
                             <button
                               type="button"
                               onClick={() => addItemToReceiving(item)}
-                              className="px-2 py-1 bg-sky-600 hover:bg-sky-700 text-white rounded text-[10px] font-bold"
+                              className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-slate-200 text-white dark:text-slate-900 rounded-lg text-[10px] font-bold transition-colors cursor-pointer"
                             >
                               + Add
                             </button>

@@ -145,7 +145,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
                 </div>
               )}
               <div className="flex justify-between">
-                <span className="text-slate-500 dark:text-slate-400">Tax ({config.default_tax_rate}%):</span>
+                <span className="text-slate-500 dark:text-slate-400">{config.tax_name || 'Tax'} ({config.default_tax_rate}%):</span>
                 <span>{config.currency_symbol}{sale.tax_total.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-sm font-black text-slate-900 dark:text-white pt-1 border-t border-slate-200 dark:border-slate-700">

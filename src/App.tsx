@@ -6,7 +6,6 @@ import { ReceivingsManager } from './components/ReceivingsManager';
 import { CustomersManager } from './components/CustomersManager';
 import { SuppliersManager } from './components/SuppliersManager';
 import { ExpensesManager } from './components/ExpensesManager';
-import { CashupsManager } from './components/CashupsManager';
 import { ReportsDashboard } from './components/ReportsDashboard';
 import { EmployeesManager } from './components/EmployeesManager';
 import { SettingsManager } from './components/SettingsManager';
@@ -19,6 +18,7 @@ import { AuthGateway } from './components/AuthGateway';
 import { RoleOverrideModal } from './components/RoleOverrideModal';
 
 import { storage } from './services/storage';
+import { applyThemePaletteToDom } from './constants/themes';
 import { 
   auth, 
   loginWithGoogle, 
@@ -38,7 +38,6 @@ import {
   Supplier, 
   Sale, 
   Receiving, 
-  Cashup, 
   Expense, 
   Employee, 
   StoreConfig, 
@@ -56,7 +55,6 @@ export const App: React.FC = () => {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
   const [receivings, setReceivings] = useState<Receiving[]>([]);
-  const [cashups, setCashups] = useState<Cashup[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [currentUser, setCurrentUser] = useState<Employee | null>(null);
@@ -125,7 +123,6 @@ export const App: React.FC = () => {
     const loadedSuppliers = storage.getSuppliers();
     const loadedSales = storage.getSales();
     const loadedReceivings = storage.getReceivings();
-    const loadedCashups = storage.getCashups();
     const loadedExpenses = storage.getExpenses();
     const loadedEmployees = storage.getEmployees();
     const loadedUser = storage.getCurrentUser();
@@ -136,7 +133,6 @@ export const App: React.FC = () => {
     setSuppliers(loadedSuppliers);
     setSales(loadedSales);
     setReceivings(loadedReceivings);
-    setCashups(loadedCashups);
     setExpenses(loadedExpenses);
     setEmployees(loadedEmployees);
     setCurrentUser(loadedUser);
@@ -239,7 +235,7 @@ export const App: React.FC = () => {
         sales,
         receivings,
         expenses,
-        cashups,
+        cashups: storage.getCashups(),
         config
       });
       setSyncState('synced');
@@ -279,14 +275,16 @@ export const App: React.FC = () => {
     await handlePullFromCloud();
   };
 
-  // Synchronize dark mode class to HTML element
+  // Synchronize dark mode class and color palette to HTML element
   useEffect(() => {
-    if (config?.theme === 'dark') {
+    const isDark = config?.theme === 'dark';
+    if (isDark) {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
-  }, [config?.theme]);
+    applyThemePaletteToDom(config?.color_palette || 'palette-1', isDark);
+  }, [config?.theme, config?.color_palette]);
 
   const handleToggleTheme = () => {
     if (!config) return;
@@ -315,7 +313,7 @@ export const App: React.FC = () => {
         sales: updatedSales,
         receivings,
         expenses,
-        cashups,
+        cashups: storage.getCashups(),
         config
       }).catch(err => console.warn('Background sync sale failed:', err));
     }
@@ -342,7 +340,7 @@ export const App: React.FC = () => {
         sales,
         receivings,
         expenses,
-        cashups,
+        cashups: storage.getCashups(),
         config
       }).catch(err => console.warn('Background sync item failed:', err));
     }
@@ -363,7 +361,7 @@ export const App: React.FC = () => {
         sales,
         receivings,
         expenses,
-        cashups,
+        cashups: storage.getCashups(),
         config
       }).catch(err => console.warn('Background sync item failed:', err));
     }
@@ -441,17 +439,6 @@ export const App: React.FC = () => {
     }
   };
 
-  const handleAddCashup = (cashupData: Omit<Cashup, 'id'>) => {
-    const newCashup = storage.addCashup(cashupData);
-    setCashups(storage.getCashups());
-    return newCashup;
-  };
-
-  const handleUpdateCashup = (id: string, updates: Partial<Cashup>) => {
-    storage.updateCashup(id, updates);
-    setCashups(storage.getCashups());
-  };
-
   // Role Override authorization prompt state
   const [overrideModal, setOverrideModal] = useState<{
     isOpen: boolean;
@@ -496,7 +483,6 @@ export const App: React.FC = () => {
       const label = 
         tab === 'reports' ? 'Sales Analytics & Reports' :
         tab === 'receivings' ? 'Inventory Purchase Intake' :
-        tab === 'cashups' ? 'Daily Cashup Reconciliations' :
         tab === 'expenses' ? 'Store Operating Expenses' :
         tab === 'suppliers' ? 'Supplier Directory' :
         tab === 'employees' ? 'Staff & Role Management' : 'Store Configuration Settings';
@@ -643,6 +629,7 @@ export const App: React.FC = () => {
         onRegisterStaff={handleRegisterStaff}
         onGoogleSignIn={handleGoogleLoginFromGateway}
         onCompleteFirstTimeSetup={() => setIsFirstTime(false)}
+        onToggleTheme={handleToggleTheme}
       />
     );
   }
@@ -734,6 +721,8 @@ export const App: React.FC = () => {
         {currentTab === 'suppliers' && (
           <SuppliersManager
             suppliers={suppliers}
+            config={config}
+            currentUserName={currentUser ? `${currentUser.first_name} ${currentUser.last_name}` : 'Staff'}
             onAddSupplier={handleAddSupplier}
             onUpdateSupplier={handleUpdateSupplier}
             onDeleteSupplier={handleDeleteSupplier}
@@ -747,17 +736,6 @@ export const App: React.FC = () => {
             config={config}
             onAddExpense={handleAddExpense}
             onDeleteExpense={handleDeleteExpense}
-          />
-        )}
-
-        {currentTab === 'cashups' && (
-          <CashupsManager
-            cashups={cashups}
-            sales={sales}
-            currentUser={currentUser}
-            config={config}
-            onAddCashup={handleAddCashup}
-            onUpdateCashup={handleUpdateCashup}
           />
         )}
 

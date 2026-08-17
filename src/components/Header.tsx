@@ -8,7 +8,6 @@ import {
   MoreHorizontal, 
   UserCheck, 
   Lock, 
-  DollarSign, 
   Building2, 
   ReceiptText, 
   Sliders, 
@@ -33,7 +32,6 @@ export type NavTab =
   | 'reports' 
   | 'suppliers' 
   | 'expenses' 
-  | 'cashups' 
   | 'employees' 
   | 'settings';
 
@@ -70,6 +68,7 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showMobileDrawer, setShowMobileDrawer] = useState(false);
+  
   const menuRef = useRef<HTMLDivElement>(null);
   const drawerRef = useRef<HTMLDivElement>(null);
 
@@ -86,7 +85,7 @@ export const Header: React.FC<HeaderProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const isMoreActive = ['suppliers', 'expenses', 'cashups', 'employees', 'settings'].includes(currentTab);
+  const isMoreActive = ['suppliers', 'expenses', 'employees', 'settings'].includes(currentTab);
 
   const handleMobileNavClick = (tab: NavTab) => {
     onSelectTab(tab);
@@ -105,12 +104,13 @@ export const Header: React.FC<HeaderProps> = ({
           >
             {showMobileDrawer ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
           </button>
-          <span 
+          <h1 
             onClick={() => onSelectTab('register')}
-            className="text-sm sm:text-base font-bold tracking-tight text-white cursor-pointer select-none whitespace-nowrap hover:text-sky-400 transition-colors"
+            style={{ fontFamily: 'Verdana, sans-serif', fontStyle: 'normal' }}
+            className="text-sm sm:text-base font-bold not-italic tracking-tight text-white cursor-pointer select-none whitespace-nowrap hover:text-sky-400 transition-colors m-0 p-0 inline-block"
           >
             Nexus POS
-          </span>
+          </h1>
         </div>
 
         {/* Zone 2: Navigation Links for Tablet / Desktop (Clean, responsive, non-clipped layout) */}
@@ -119,9 +119,7 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             onClick={() => onSelectTab('register')}
             className={`flex items-center gap-1.5 px-2.5 xl:px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
-              currentTab === 'register'
-                ? 'bg-sky-600 text-white shadow-sm ring-1 ring-sky-400/50'
-                : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+              currentTab === 'register' ? 'header-nav-active' : 'header-nav-btn'
             }`}
           >
             <ShoppingCart className="w-3.5 h-3.5" />
@@ -131,9 +129,7 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             onClick={() => onSelectTab('inventory')}
             className={`flex items-center gap-1.5 px-2.5 xl:px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
-              currentTab === 'inventory'
-                ? 'bg-sky-600 text-white shadow-sm ring-1 ring-sky-400/50'
-                : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+              currentTab === 'inventory' ? 'header-nav-active' : 'header-nav-btn'
             }`}
           >
             <Package className="w-3.5 h-3.5" />
@@ -143,9 +139,7 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             onClick={() => onSelectTab('receivings')}
             className={`flex items-center gap-1.5 px-2.5 xl:px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
-              currentTab === 'receivings'
-                ? 'bg-sky-600 text-white shadow-sm ring-1 ring-sky-400/50'
-                : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+              currentTab === 'receivings' ? 'header-nav-active' : 'header-nav-btn'
             }`}
           >
             <Truck className="w-3.5 h-3.5" />
@@ -155,9 +149,7 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             onClick={() => onSelectTab('customers')}
             className={`flex items-center gap-1.5 px-2.5 xl:px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
-              currentTab === 'customers'
-                ? 'bg-sky-600 text-white shadow-sm ring-1 ring-sky-400/50'
-                : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+              currentTab === 'customers' ? 'header-nav-active' : 'header-nav-btn'
             }`}
           >
             <Users className="w-3.5 h-3.5" />
@@ -168,9 +160,7 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             onClick={() => onSelectTab('suppliers')}
             className={`hidden xl:flex items-center gap-1.5 px-2.5 xl:px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
-              currentTab === 'suppliers'
-                ? 'bg-sky-600 text-white shadow-sm ring-1 ring-sky-400/50'
-                : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+              currentTab === 'suppliers' ? 'header-nav-active' : 'header-nav-btn'
             }`}
           >
             <Building2 className="w-3.5 h-3.5" />
@@ -180,38 +170,22 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             onClick={() => onSelectTab('reports')}
             className={`flex items-center gap-1.5 px-2.5 xl:px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
-              currentTab === 'reports'
-                ? 'bg-sky-600 text-white shadow-sm ring-1 ring-sky-400/50'
-                : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+              currentTab === 'reports' ? 'header-nav-active' : 'header-nav-btn'
             }`}
           >
             <BarChart3 className="w-3.5 h-3.5" />
             <span>Reports</span>
           </button>
 
-          {/* On 2xl screens, show Expenses & Cashups directly */}
+          {/* On 2xl screens, show Expenses directly */}
           <button
             onClick={() => onSelectTab('expenses')}
             className={`hidden 2xl:flex items-center gap-1.5 px-2.5 xl:px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
-              currentTab === 'expenses'
-                ? 'bg-sky-600 text-white shadow-sm ring-1 ring-sky-400/50'
-                : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+              currentTab === 'expenses' ? 'header-nav-active' : 'header-nav-btn'
             }`}
           >
             <ReceiptText className="w-3.5 h-3.5" />
             <span>Expenses</span>
-          </button>
-
-          <button
-            onClick={() => onSelectTab('cashups')}
-            className={`hidden 2xl:flex items-center gap-1.5 px-2.5 xl:px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
-              currentTab === 'cashups'
-                ? 'bg-sky-600 text-white shadow-sm ring-1 ring-sky-400/50'
-                : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
-            }`}
-          >
-            <DollarSign className="w-3.5 h-3.5" />
-            <span>Cashups</span>
           </button>
 
           {/* More / Operations Dropdown (Visible on PC, unclipped, with active state indicator) */}
@@ -219,23 +193,19 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               onClick={() => setShowMoreMenu(!showMoreMenu)}
               className={`flex items-center gap-1.5 px-2.5 lg:px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
-                isMoreActive
-                  ? 'bg-sky-950 text-sky-300 border border-sky-600/70 shadow-sm'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+                isMoreActive ? 'header-nav-active' : 'header-nav-btn'
               }`}
               title="Additional Management & Administration Tabs"
             >
-              {currentTab === 'suppliers' && <Building2 className="w-3.5 h-3.5 xl:hidden text-sky-400" />}
-              {currentTab === 'expenses' && <ReceiptText className="w-3.5 h-3.5 2xl:hidden text-sky-400" />}
-              {currentTab === 'cashups' && <DollarSign className="w-3.5 h-3.5 2xl:hidden text-sky-400" />}
-              {currentTab === 'employees' && <ShieldCheck className="w-3.5 h-3.5 text-purple-400" />}
-              {currentTab === 'settings' && <Sliders className="w-3.5 h-3.5 text-amber-400" />}
+              {currentTab === 'suppliers' && <Building2 className="w-3.5 h-3.5 xl:hidden" />}
+              {currentTab === 'expenses' && <ReceiptText className="w-3.5 h-3.5 2xl:hidden" />}
+              {currentTab === 'employees' && <ShieldCheck className="w-3.5 h-3.5" />}
+              {currentTab === 'settings' && <Sliders className="w-3.5 h-3.5" />}
               {!isMoreActive && <MoreHorizontal className="w-3.5 h-3.5" />}
 
               <span>
                 {currentTab === 'suppliers' ? 'Suppliers' :
                  currentTab === 'expenses' ? 'Expenses' :
-                 currentTab === 'cashups' ? 'Cashups' :
                  currentTab === 'employees' ? 'Staff & Roles' :
                  currentTab === 'settings' ? 'Settings' : 'More'}
               </span>
@@ -244,66 +214,54 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
 
             {showMoreMenu && (
-              <div className="absolute right-0 mt-2 w-56 bg-slate-900/95 border border-slate-700 rounded-xl shadow-2xl py-1.5 z-50 text-slate-200 divide-y divide-slate-800 backdrop-blur-md animate-in fade-in zoom-in-95 duration-100">
+              <div className="header-dropdown absolute right-0 mt-2 w-56 rounded-xl shadow-2xl py-1.5 z-50 divide-y backdrop-blur-md animate-in fade-in zoom-in-95 duration-100">
                 <div className="py-1">
-                  <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider opacity-75">
                     Operations
                   </div>
                   
                   <button
                     onClick={() => { onSelectTab('suppliers'); setShowMoreMenu(false); }}
-                    className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-slate-800 transition-colors ${
-                      currentTab === 'suppliers' ? 'text-sky-400 font-bold bg-slate-800/60' : ''
+                    className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between transition-colors ${
+                      currentTab === 'suppliers' ? 'header-dropdown-item-active' : 'header-dropdown-item'
                     }`}
                   >
                     <div className="flex items-center gap-2">
-                      <Building2 className="w-4 h-4 text-slate-400" />
+                      <Building2 className="w-4 h-4 opacity-80" />
                       <span>Suppliers</span>
                     </div>
                   </button>
 
                   <button
                     onClick={() => { onSelectTab('expenses'); setShowMoreMenu(false); }}
-                    className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-slate-800 transition-colors ${
-                      currentTab === 'expenses' ? 'text-sky-400 font-bold bg-slate-800/60' : ''
+                    className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between transition-colors ${
+                      currentTab === 'expenses' ? 'header-dropdown-item-active' : 'header-dropdown-item'
                     }`}
                   >
                     <div className="flex items-center gap-2">
-                      <ReceiptText className="w-4 h-4 text-slate-400" />
+                      <ReceiptText className="w-4 h-4 opacity-80" />
                       <span>Store Expenses</span>
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => { onSelectTab('cashups'); setShowMoreMenu(false); }}
-                    className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-slate-800 transition-colors ${
-                      currentTab === 'cashups' ? 'text-sky-400 font-bold bg-slate-800/60' : ''
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <DollarSign className="w-4 h-4 text-slate-400" />
-                      <span>Daily Cashups</span>
                     </div>
                   </button>
                 </div>
 
                 <div className="py-1">
-                  <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider opacity-75">
                     Administration
                   </div>
 
                   <button
                     onClick={() => { onSelectTab('employees'); setShowMoreMenu(false); }}
-                    className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-slate-800 transition-colors ${
-                      currentTab === 'employees' ? 'text-purple-300 font-bold bg-purple-950/40' : ''
+                    className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between transition-colors ${
+                      currentTab === 'employees' ? 'header-dropdown-item-active' : 'header-dropdown-item'
                     }`}
                   >
                     <div className="flex items-center gap-2">
-                      <ShieldCheck className="w-4 h-4 text-purple-400" />
+                      <ShieldCheck className="w-4 h-4 opacity-80" />
                       <span>Staff & Roles</span>
                     </div>
                     {currentUser.role !== 'admin' && (
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-950 text-purple-300 border border-purple-800 font-bold uppercase">
+                      <span className="header-badge text-[9px] px-1.5 py-0.5 rounded font-bold uppercase">
                         Admin
                       </span>
                     )}
@@ -311,21 +269,21 @@ export const Header: React.FC<HeaderProps> = ({
 
                   <button
                     onClick={() => { onSelectTab('settings'); setShowMoreMenu(false); }}
-                    className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-slate-800 transition-colors ${
-                      currentTab === 'settings' ? 'text-amber-300 font-bold bg-amber-950/40' : ''
+                    className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between transition-colors ${
+                      currentTab === 'settings' ? 'header-dropdown-item-active' : 'header-dropdown-item'
                     }`}
                   >
                     <div className="flex items-center gap-2">
-                      <Sliders className="w-4 h-4 text-amber-400" />
+                      <Sliders className="w-4 h-4 opacity-80" />
                       <span>Store Settings</span>
                     </div>
                     {currentUser.role !== 'admin' ? (
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-800 font-bold uppercase flex items-center gap-1">
+                      <span className="header-badge text-[9px] px-1.5 py-0.5 rounded font-bold uppercase flex items-center gap-1">
                         <Lock className="w-2.5 h-2.5" />
                         Admin Only
                       </span>
                     ) : (
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800 font-bold uppercase">
+                      <span className="header-badge text-[9px] px-1.5 py-0.5 rounded font-bold uppercase">
                         Admin
                       </span>
                     )}
@@ -342,21 +300,15 @@ export const Header: React.FC<HeaderProps> = ({
           {onOpenCloudSync && (
             <button
               onClick={onOpenCloudSync}
-              className={`flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all whitespace-nowrap ${
-                firebaseUser
-                  ? syncState === 'syncing'
-                    ? 'bg-sky-500/20 text-sky-300 border-sky-500/40'
-                    : 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/25'
-                  : 'bg-slate-800 text-slate-300 border-slate-700 hover:text-white hover:bg-slate-700'
+              className={`header-action-btn flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all whitespace-nowrap ${
+                firebaseUser && syncState === 'syncing' ? 'header-action-btn-syncing' : ''
               }`}
               title={firebaseUser ? `Nexus Cloud Sync: ${syncState}` : 'Sign in to enable Cloud Sync'}
             >
               {syncState === 'syncing' ? (
-                <RefreshCw className="w-3.5 h-3.5 text-sky-400 animate-spin" />
-              ) : firebaseUser ? (
-                <Cloud className="w-3.5 h-3.5 text-emerald-400" />
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
               ) : (
-                <Cloud className="w-3.5 h-3.5 text-slate-400" />
+                <Cloud className="w-3.5 h-3.5" />
               )}
               <span className="hidden sm:inline text-[11px]">
                 {firebaseUser ? (syncState === 'syncing' ? 'Syncing' : 'Cloud') : 'Cloud Off'}
@@ -367,25 +319,25 @@ export const Header: React.FC<HeaderProps> = ({
           {onOpenShortcuts && (
             <button
               onClick={onOpenShortcuts}
-              className="p-1.5 text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/60 rounded-lg text-xs transition-colors hidden lg:flex items-center"
+              className="header-action-btn p-1.5 rounded-lg text-xs transition-colors hidden lg:flex items-center"
               title="Keyboard Shortcuts (F1)"
               aria-label="Keyboard Shortcuts"
             >
-              <Keyboard className="w-3.5 h-3.5 text-slate-400" />
+              <Keyboard className="w-3.5 h-3.5" />
             </button>
           )}
 
           {onToggleTheme && (
             <button
               onClick={onToggleTheme}
-              className="p-1.5 text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/60 rounded-lg text-xs transition-colors"
+              className="header-action-btn p-1.5 rounded-lg text-xs transition-colors"
               title={theme === 'dark' ? 'Switch to Light Theme' : 'Switch to Dark Theme'}
               aria-label="Toggle Theme"
             >
               {theme === 'dark' ? (
-                <Sun className="w-3.5 h-3.5 text-amber-300" />
+                <Sun className="w-3.5 h-3.5" />
               ) : (
-                <Moon className="w-3.5 h-3.5 text-sky-300" />
+                <Moon className="w-3.5 h-3.5" />
               )}
             </button>
           )}
@@ -393,7 +345,7 @@ export const Header: React.FC<HeaderProps> = ({
           {heldSalesCount > 0 && (
             <button
               onClick={onResumeHeld}
-              className="flex items-center gap-1 px-2 sm:px-2.5 py-1 bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-lg text-xs hover:bg-amber-500/30 transition-colors whitespace-nowrap font-medium"
+              className="header-action-btn header-held-btn flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-lg text-xs transition-colors whitespace-nowrap font-medium"
               title={`${heldSalesCount} held sale(s)`}
             >
               <span>Held ({heldSalesCount})</span>
@@ -403,27 +355,21 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="flex items-center gap-1">
             <button
               onClick={onOpenSwitchUser}
-              className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs transition-colors whitespace-nowrap font-medium"
+              className="header-action-btn flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg text-xs transition-colors whitespace-nowrap font-medium"
               title="Switch Staff or Lock Register"
             >
-              <UserCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <UserCheck className="w-3.5 h-3.5 shrink-0" />
               <span className="font-semibold truncate max-w-[70px] sm:max-w-none">{currentUser.first_name}</span>
-              <span className={`hidden sm:inline-block px-1.5 py-0.2 rounded text-[9px] font-bold uppercase tracking-wider ${
-                currentUser.role === 'admin'
-                  ? 'bg-purple-900/60 text-purple-300 border border-purple-700/60'
-                  : currentUser.role === 'manager'
-                  ? 'bg-blue-900/60 text-blue-300 border border-blue-700/60'
-                  : 'bg-emerald-900/60 text-emerald-300 border border-emerald-700/60'
-              }`}>
+              <span className="header-badge hidden sm:inline-block px-1.5 py-0.2 rounded text-[9px] font-bold uppercase tracking-wider">
                 {currentUser.role}
               </span>
-              <Lock className="w-3 h-3 text-slate-400 ml-0.5 shrink-0" />
+              <Lock className="w-3 h-3 ml-0.5 shrink-0 opacity-75" />
             </button>
 
             {onLogout && (
               <button
                 onClick={onLogout}
-                className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 border border-slate-700/60 rounded-lg text-xs transition-colors"
+                className="header-action-btn p-1.5 rounded-lg text-xs transition-colors"
                 title="Sign Out to Terminal Login Gate"
                 aria-label="Sign Out"
               >
@@ -436,12 +382,12 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Mobile Slide-out Menu for Phone Viewports */}
       {showMobileDrawer && (
-        <div className="md:hidden border-t border-slate-800 bg-slate-900 px-4 py-3 space-y-1 animate-in slide-in-from-top-2 duration-150" ref={drawerRef}>
-          <div className="grid grid-cols-2 gap-1.5 pb-2 border-b border-slate-800">
+        <div className="md:hidden border-t header-dropdown px-4 py-3 space-y-1 animate-in slide-in-from-top-2 duration-150" ref={drawerRef}>
+          <div className="grid grid-cols-2 gap-1.5 pb-2 border-b border-white/10">
             <button
               onClick={() => handleMobileNavClick('register')}
               className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold ${
-                currentTab === 'register' ? 'bg-sky-600 text-white' : 'text-slate-300 hover:bg-slate-800'
+                currentTab === 'register' ? 'header-nav-active' : 'header-dropdown-item'
               }`}
             >
               <ShoppingCart className="w-4 h-4" />
@@ -451,7 +397,7 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               onClick={() => handleMobileNavClick('inventory')}
               className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold ${
-                currentTab === 'inventory' ? 'bg-sky-600 text-white' : 'text-slate-300 hover:bg-slate-800'
+                currentTab === 'inventory' ? 'header-nav-active' : 'header-dropdown-item'
               }`}
             >
               <Package className="w-4 h-4" />
@@ -461,7 +407,7 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               onClick={() => handleMobileNavClick('receivings')}
               className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold ${
-                currentTab === 'receivings' ? 'bg-sky-600 text-white' : 'text-slate-300 hover:bg-slate-800'
+                currentTab === 'receivings' ? 'header-nav-active' : 'header-dropdown-item'
               }`}
             >
               <Truck className="w-4 h-4" />
@@ -471,7 +417,7 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               onClick={() => handleMobileNavClick('customers')}
               className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold ${
-                currentTab === 'customers' ? 'bg-sky-600 text-white' : 'text-slate-300 hover:bg-slate-800'
+                currentTab === 'customers' ? 'header-nav-active' : 'header-dropdown-item'
               }`}
             >
               <Users className="w-4 h-4" />
@@ -481,7 +427,7 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               onClick={() => handleMobileNavClick('reports')}
               className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold ${
-                currentTab === 'reports' ? 'bg-sky-600 text-white' : 'text-slate-300 hover:bg-slate-800'
+                currentTab === 'reports' ? 'header-nav-active' : 'header-dropdown-item'
               }`}
             >
               <BarChart3 className="w-4 h-4" />
@@ -491,7 +437,7 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               onClick={() => handleMobileNavClick('suppliers')}
               className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold ${
-                currentTab === 'suppliers' ? 'bg-sky-600 text-white' : 'text-slate-300 hover:bg-slate-800'
+                currentTab === 'suppliers' ? 'header-nav-active' : 'header-dropdown-item'
               }`}
             >
               <Building2 className="w-4 h-4" />
@@ -501,7 +447,7 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               onClick={() => handleMobileNavClick('expenses')}
               className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold ${
-                currentTab === 'expenses' ? 'bg-sky-600 text-white' : 'text-slate-300 hover:bg-slate-800'
+                currentTab === 'expenses' ? 'header-nav-active' : 'header-dropdown-item'
               }`}
             >
               <ReceiptText className="w-4 h-4" />
@@ -509,19 +455,9 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
 
             <button
-              onClick={() => handleMobileNavClick('cashups')}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold ${
-                currentTab === 'cashups' ? 'bg-sky-600 text-white' : 'text-slate-300 hover:bg-slate-800'
-              }`}
-            >
-              <DollarSign className="w-4 h-4" />
-              <span>Daily Cashups</span>
-            </button>
-
-            <button
               onClick={() => handleMobileNavClick('employees')}
               className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-semibold ${
-                currentTab === 'employees' ? 'bg-sky-600 text-white' : 'text-slate-300 hover:bg-slate-800'
+                currentTab === 'employees' ? 'header-nav-active' : 'header-dropdown-item'
               }`}
             >
               <div className="flex items-center gap-2">
@@ -529,7 +465,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <span>Staff & Roles</span>
               </div>
               {currentUser.role !== 'admin' && (
-                <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-950 text-purple-300 border border-purple-800 font-bold uppercase">
+                <span className="header-badge text-[9px] px-1.5 py-0.5 rounded font-bold uppercase">
                   Admin
                 </span>
               )}
@@ -537,21 +473,21 @@ export const Header: React.FC<HeaderProps> = ({
 
             <button
               onClick={() => handleMobileNavClick('settings')}
-              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-semibold ${
-                currentTab === 'settings' ? 'bg-sky-600 text-white' : 'text-slate-300 hover:bg-slate-800'
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-semibold col-span-2 ${
+                currentTab === 'settings' ? 'header-nav-active' : 'header-dropdown-item'
               }`}
             >
               <div className="flex items-center gap-2">
                 <Sliders className="w-4 h-4" />
-                <span>Store Settings</span>
+                <span>Store Settings & Country Currency</span>
               </div>
               {currentUser.role !== 'admin' ? (
-                <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-800 font-bold uppercase flex items-center gap-1">
+                <span className="header-badge text-[9px] px-1.5 py-0.5 rounded font-bold uppercase flex items-center gap-1">
                   <Lock className="w-2.5 h-2.5" />
                   Admin Only
                 </span>
               ) : (
-                <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800 font-bold uppercase">
+                <span className="header-badge text-[9px] px-1.5 py-0.5 rounded font-bold uppercase">
                   Admin
                 </span>
               )}
@@ -565,40 +501,15 @@ export const Header: React.FC<HeaderProps> = ({
                   onOpenCloudSync();
                   setShowMobileDrawer(false);
                 }}
-                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-bold transition-colors ${
-                  firebaseUser
-                    ? 'bg-emerald-950/60 border border-emerald-800 text-emerald-300'
-                    : 'bg-slate-800 border border-slate-700 text-slate-300'
-                }`}
+                className="header-action-btn w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-bold transition-colors"
               >
                 <div className="flex items-center gap-2">
-                  <Cloud className="w-4 h-4 text-sky-400" />
+                  <Cloud className="w-4 h-4" />
                   <span>Cloud Sync & Account</span>
                 </div>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-900">
+                <span className="header-badge text-[10px] font-mono px-2 py-0.5 rounded">
                   {firebaseUser ? (syncState === 'syncing' ? 'Syncing...' : 'Connected') : 'Sign In'}
                 </span>
-              </button>
-            </div>
-          )}
-
-          {onLogout && (
-            <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs text-slate-300">
-                <span className="font-bold">{currentUser.first_name} {currentUser.last_name}</span>
-                <span className="px-1.5 py-0.5 bg-slate-800 text-[10px] font-mono uppercase text-sky-400 rounded">
-                  {currentUser.role}
-                </span>
-              </div>
-              <button
-                onClick={() => {
-                  setShowMobileDrawer(false);
-                  onLogout();
-                }}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-950/60 border border-rose-800 text-rose-300 text-xs font-bold"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-                <span>Log Out</span>
               </button>
             </div>
           )}
@@ -607,4 +518,3 @@ export const Header: React.FC<HeaderProps> = ({
     </header>
   );
 };
-

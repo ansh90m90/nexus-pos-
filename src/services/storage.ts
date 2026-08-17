@@ -1,4 +1,4 @@
-import { Item, Customer, Supplier, Sale, Receiving, Cashup, Expense, Employee, StoreConfig } from '../types/pos';
+import { Item, Customer, Supplier, Sale, Receiving, Cashup, Expense, Employee, StoreConfig, CreditLedgerEntry } from '../types/pos';
 import { sound } from './audio';
 
 const STORAGE_KEYS = {
@@ -17,12 +17,18 @@ const STORAGE_KEYS = {
 };
 
 const DEFAULT_CONFIG: StoreConfig = {
-  company_name: 'Open Source POS',
+  company_name: 'Nexus POS',
   address: '',
   phone: '',
   email: '',
   website: '',
-  currency_symbol: '$',
+  country_code: 'IN',
+  country_name: 'India',
+  currency_code: 'INR',
+  currency_symbol: '₹',
+  currency_position: 'before',
+  number_format: 'indian',
+  tax_name: 'GST',
   default_tax_rate: 0,
   receipt_header: 'Welcome to our store!\nThank you for your business.',
   receipt_footer: 'Please visit again!',
@@ -30,6 +36,7 @@ const DEFAULT_CONFIG: StoreConfig = {
   enable_sound: true,
   enable_loyalty: true,
   theme: 'light',
+  color_palette: 'palette-1',
   accent_color: 'sky',
   upi_id: '',
   upi_payee_name: '',
@@ -204,6 +211,49 @@ class StorageService {
     return cust;
   }
 
+  public addCustomerCreditEntry(
+    customerId: string,
+    amount: number,
+    type: 'sale_credit' | 'payment_received' | 'credit_adjustment',
+    note: string = '',
+    paymentMethod: string = 'Cash',
+    employeeName: string = 'Staff'
+  ): Customer | null {
+    const customers = this.getCustomers();
+    const index = customers.findIndex(c => c.id === customerId);
+    if (index === -1) return null;
+
+    const cust = customers[index];
+    const currentBalance = cust.credit_balance || 0;
+    let newBalance = currentBalance;
+
+    if (type === 'sale_credit') {
+      // You gave (Maine Diya) -> Balance increases
+      newBalance = currentBalance + amount;
+    } else if (type === 'payment_received') {
+      // You got (Maine Liya) -> Balance decreases
+      newBalance = Math.max(0, currentBalance - amount);
+    } else {
+      newBalance = amount;
+    }
+
+    const ledgerEntry: CreditLedgerEntry = {
+      id: 'cld-' + Date.now(),
+      date: new Date().toISOString(),
+      type,
+      amount,
+      balance_after: newBalance,
+      note: note || (type === 'sale_credit' ? 'Credit Sale (Maine Diya)' : 'Payment Received (Maine Liya)'),
+      payment_method: paymentMethod,
+      recorded_by: employeeName,
+    };
+
+    cust.credit_balance = newBalance;
+    cust.credit_ledger = [ledgerEntry, ...(cust.credit_ledger || [])];
+    this.saveCustomers(customers);
+    return cust;
+  }
+
   public adjustCustomerCredit(
     customerId: string,
     newBalance: number,
@@ -250,6 +300,9 @@ class StorageService {
     const suppliers = this.getSuppliers();
     const newSupplier: Supplier = {
       ...supplier,
+      credit_balance: supplier.credit_balance || 0,
+      credit_limit: supplier.credit_limit || 10000,
+      credit_ledger: supplier.credit_ledger || [],
       id: 'supp-' + Date.now(),
     };
     suppliers.unshift(newSupplier);
@@ -269,6 +322,81 @@ class StorageService {
   public deleteSupplier(id: string): void {
     const suppliers = this.getSuppliers().filter(s => s.id !== id);
     this.saveSuppliers(suppliers);
+  }
+
+  public addSupplierCreditEntry(
+    supplierId: string,
+    amount: number,
+    type: 'sale_credit' | 'payment_received' | 'credit_adjustment',
+    note: string = '',
+    paymentMethod: string = 'Bank Transfer / UPI',
+    employeeName: string = 'Staff'
+  ): Supplier | null {
+    const suppliers = this.getSuppliers();
+    const index = suppliers.findIndex(s => s.id === supplierId);
+    if (index === -1) return null;
+
+    const supp = suppliers[index];
+    const currentBalance = supp.credit_balance || 0;
+    let newBalance = currentBalance;
+
+    if (type === 'sale_credit') {
+      // You Got Goods (Maine Liya) -> Payable increases (You owe more)
+      newBalance = currentBalance + amount;
+    } else if (type === 'payment_received') {
+      // You Paid (Maine Diya) -> Payable decreases (You cleared payment)
+      newBalance = Math.max(0, currentBalance - amount);
+    } else {
+      newBalance = amount;
+    }
+
+    const ledgerEntry: CreditLedgerEntry = {
+      id: 'sld-' + Date.now(),
+      date: new Date().toISOString(),
+      type,
+      amount,
+      balance_after: newBalance,
+      note: note || (type === 'sale_credit' ? 'Goods Received / Bill (Maine Liya)' : 'Payment Paid (Maine Diya)'),
+      payment_method: paymentMethod,
+      recorded_by: employeeName,
+    };
+
+    supp.credit_balance = newBalance;
+    supp.credit_ledger = [ledgerEntry, ...(supp.credit_ledger || [])];
+    this.saveSuppliers(suppliers);
+    return supp;
+  }
+
+  public adjustSupplierCredit(
+    supplierId: string,
+    newBalance: number,
+    creditLimit: number,
+    note: string = 'Manual balance/limit adjustment',
+    employeeName: string = 'Manager'
+  ): Supplier | null {
+    const suppliers = this.getSuppliers();
+    const index = suppliers.findIndex(s => s.id === supplierId);
+    if (index === -1) return null;
+
+    const supp = suppliers[index];
+    const oldBalance = supp.credit_balance || 0;
+    const diff = newBalance - oldBalance;
+
+    const ledgerEntry: CreditLedgerEntry = {
+      id: 'sld-' + Date.now(),
+      date: new Date().toISOString(),
+      type: 'credit_adjustment',
+      amount: Math.abs(diff),
+      balance_after: newBalance,
+      note: `${note} (${diff >= 0 ? '+' : '-'}${Math.abs(diff).toFixed(2)})`,
+      recorded_by: employeeName,
+    };
+
+    supp.credit_balance = newBalance;
+    supp.credit_limit = creditLimit;
+    supp.credit_ledger = [ledgerEntry, ...(supp.credit_ledger || [])];
+    this.saveSuppliers(suppliers);
+    return supp;
   }
 
   // Sales
@@ -712,6 +840,9 @@ class StorageService {
   public getConfig(): StoreConfig {
     const config = this.getItem<StoreConfig>(STORAGE_KEYS.CONFIG, DEFAULT_CONFIG);
     const merged = { ...DEFAULT_CONFIG, ...config };
+    if (!merged.company_name || merged.company_name.includes('Open Source POS') || merged.company_name.includes('OSPOS') || merged.company_name.trim() === '') {
+      merged.company_name = 'Nexus POS';
+    }
     sound.setEnabled(merged.enable_sound ?? true);
     return merged;
   }
